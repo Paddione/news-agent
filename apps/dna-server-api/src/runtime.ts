@@ -83,7 +83,10 @@ function decideFor(config: Config): { decide: Decide; judgeRuntime?: JudgeRuntim
   return { decide: (state, questions, opts) => client.systemOne(state, questions, opts) };
 }
 
-export async function openApp(config: Config, options: { log?: Logger } = {}): Promise<App> {
+export async function openApp(
+  config: Config,
+  options: { log?: Logger; /** Tests: replace the jev backend. */ decide?: Decide } = {},
+): Promise<App> {
   mkdirSync(config.dataDir, { recursive: true });
   const log = options.log ?? createLogger("api").child({ device: config.device });
   const store = openStore(config.dataDir, config.configDir);
@@ -101,7 +104,9 @@ export async function openApp(config: Config, options: { log?: Logger } = {}): P
           }
         : undefined,
   });
-  const { decide, judgeRuntime } = decideFor(config);
+  const { decide, judgeRuntime } = options.decide
+    ? { decide: options.decide, judgeRuntime: undefined }
+    : decideFor(config);
   const judge = new Judge({
     decide,
     store,
