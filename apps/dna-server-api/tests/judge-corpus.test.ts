@@ -41,3 +41,23 @@ test("label skips rows already done and records teacher probs and mass", async (
   assert.equal(out[0].teacher.model, "teacher-x");
   assert.equal(out[0].teacher.mass, 0.95);
 });
+
+test("label skips a row the teacher cannot answer and keeps going", async () => {
+  const rows = exportCorpus([cap(1), cap(2)]);
+  const skipped: string[] = [];
+  const out = [];
+  for await (const r of labelCorpus(
+    rows,
+    new Set(),
+    async (p, labels) => {
+      if (p === rows[0].prompt) throw new Error("Judge put 0.000 on the labels");
+      return { probs: labels.map(() => 1 / labels.length), mass: 0.9 };
+    },
+    "teacher-x",
+    (row, error) => skipped.push(`${row.key}:${String(error)}`),
+  ))
+    out.push(r);
+  assert.equal(out.length, rows.length - 1);
+  assert.equal(skipped.length, 1);
+  assert.match(skipped[0], /0\.000 on the labels/);
+});

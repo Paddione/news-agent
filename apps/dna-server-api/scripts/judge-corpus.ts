@@ -60,11 +60,20 @@ export async function* labelCorpus(
   done: Set<string>,
   distribution: Distribution,
   model: string,
+  onSkip?: (row: CorpusRow, error: unknown) => void,
 ): AsyncGenerator<LabeledRow> {
   for (const row of rows) {
     if (done.has(row.key)) continue;
-    const { probs, mass } = await distribution(row.prompt, row.labels);
-    yield { ...row, teacher: { model, probs, mass } };
+    let answer: { probs: number[]; mass: number };
+    try {
+      answer = await distribution(row.prompt, row.labels);
+    } catch (error) {
+      // One prompt the teacher cannot answer (e.g. all labels outside its top 50) must not stop a multi-hour run,
+      // or block every resume on the same row.
+      onSkip?.(row, error);
+      continue;
+    }
+    yield { ...row, teacher: { model, probs: answer.probs, mass: answer.mass } };
   }
 }
 
@@ -102,13 +111,32 @@ async function main() {
     });
     await teacher.init();
     const rows = readLines(input).map((l) => JSON.parse(l) as CorpusRow);
-    const done = new Set(readLines(output).map((l) => JSON.parse(l).key as string));
+    const skipFile = `${output}.skipped.jsonl`;
+    const skippedBefore = readLines(skipFile).map((l) => JSON.parse(l).key as string);
+    const done = new Set([
+      ...readLines(output).map((l) => JSON.parse(l).key as string),
+      ...skippedBefore,
+    ]);
     let n = 0;
-    for await (const row of labelCorpus(rows, done, (p, l) => teacher.distribution(p, l), model)) {
+    let skipped = 0;
+    const onSkip = (row: CorpusRow, error: unknown) => {
+      skipped++;
+      appendFileSync(
+        skipFile,
+        `${JSON.stringify({ key: row.key, command: row.command, error: String(error).slice(0, 300) })}\n`,
+      );
+    };
+    for await (const row of labelCorpus(
+      rows,
+      done,
+      (p, l) => teacher.distribution(p, l),
+      model,
+      onSkip,
+    )) {
       appendFileSync(output, `${JSON.stringify(row)}\n`);
       if (++n % 100 === 0) console.log(`labeled ${n + done.size}/${rows.length}`);
     }
-    console.log(`done: ${n} new, ${done.size} resumed`);
+    console.log(`done: ${n} new, ${done.size} resumed, ${skipped} skipped (see ${skipFile})`);
     return;
   }
   console.error(
