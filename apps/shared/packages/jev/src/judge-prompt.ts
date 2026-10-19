@@ -2,10 +2,10 @@
 // The one prompt renderer for the local judge. Training data is exported through it, so the model only ever sees
 // prompts this file produced. TEMPLATE_SHA hashes fixed sample renders: change the output, retrain the judge.
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { QuestionValidationError, type Question, type State } from "./types.ts";
 
-const SYSTEM =
-  "You are a strict news judge. Read the state, answer the question with exactly one label and nothing else.";
+const SYSTEM = readFileSync(new URL("../prompts/JUDGE_SYSTEM.md", import.meta.url), "utf8").trim();
 const CHOICE_ALPHABET = [
   ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ",
   ..."abcdefghijklmnopqrstuvwxyz",
