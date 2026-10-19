@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Conversation, SubmissionId } from "@earendil-works/pi-durable";
 import type { Context } from "@earendil-works/chord";
-import { JevClient, LocalJev, loadManifest, type Decide } from "@dna/jev";
+import { JevClient, LocalJev, loadManifest, TEMPLATE_SHA, type Decide } from "@dna/jev";
 import type { CompactionState } from "@dna/sdk";
 import {
   createModelCatalog,
@@ -62,10 +62,18 @@ export interface App extends Deps {
 function decideFor(config: Config): { decide: Decide; judgeRuntime?: JudgeRuntime } {
   if (config.jevBackend === "fixture") return { decide: fixtureDecide() };
   if (config.jevBackend === "local") {
-    const jev = new LocalJev({
-      baseUrl: config.jevLocalBaseUrl,
-      manifest: loadManifest(config.jevManifest),
-    });
+    // node:test never touches a GPU session or a real judge: the same isolation JevClient.selectProvider applies.
+    if (process.env.NODE_TEST_CONTEXT && process.env.JEV_LIVE !== "1") {
+      const mock = new JevClient({ provider: "mock" });
+      return { decide: (state, questions, opts) => mock.systemOne(state, questions, opts) };
+    }
+    const manifest = loadManifest(config.jevManifest);
+    // Refuse at startup, before the first jev call would preempt the GPU for a judge that cannot be used.
+    if (manifest.template_sha !== TEMPLATE_SHA)
+      throw new Error(
+        `Judge ${manifest.version} (${config.jevManifest}) was trained on template ${manifest.template_sha.slice(0, 12)}, the runtime renders ${TEMPLATE_SHA.slice(0, 12)}. Retrain or roll back judge-prompt.ts.`,
+      );
+    const jev = new LocalJev({ baseUrl: config.jevLocalBaseUrl, manifest });
     let ready: Promise<void> | undefined;
     const judgeRuntime = new JudgeRuntime({ session: shellSession(config.gpuSessionBin) });
     const decide: Decide = async (state, questions, opts) => {

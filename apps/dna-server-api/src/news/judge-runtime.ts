@@ -26,7 +26,7 @@ export interface Session {
 export function shellSession(bin: string): Session {
   const call = async (...args: string[]) => {
     try {
-      await run(bin, args, { timeout: 120_000 });
+      await run(bin, args, { timeout: 180_000 });
     } catch (error: any) {
       if (error?.code === 3)
         throw new JudgeUnavailableError("gpu_training", String(error.stderr ?? "").trim());
@@ -46,7 +46,9 @@ export function shellSession(bin: string): Session {
 }
 
 export class JudgeRuntime {
-  private pending?: Promise<void>;
+  // ensure and close run one at a time: an ensure racing the idle release would otherwise hit the script's
+  // "session healthy" path just before release tears the judge down, leaving active=true with no judge.
+  private chain: Promise<unknown> = Promise.resolve();
   private timer?: NodeJS.Timeout;
   private lastBeat = 0;
   active = false;
@@ -67,24 +69,38 @@ export class JudgeRuntime {
     this.now = opts.now ?? Date.now;
   }
 
-  async ensure(): Promise<void> {
-    if (!this.active) {
-      this.pending ??= this.opts.session.acquire().then(
-        () => {
-          this.active = true;
-          this.lastBeat = this.now();
-        },
-        (error) => {
-          this.pending = undefined;
+  ensure(): Promise<void> {
+    return this.serial(async () => {
+      if (!this.active) {
+        await this.opts.session.acquire();
+        this.active = true;
+        this.lastBeat = this.now();
+      } else if (this.now() - this.lastBeat >= this.heartbeatMs) {
+        this.lastBeat = this.now();
+        try {
+          await this.opts.session.heartbeat();
+        } catch (error) {
+          this.lost();
           throw error;
-        },
-      );
-      await this.pending;
-    } else if (this.now() - this.lastBeat >= this.heartbeatMs) {
-      this.lastBeat = this.now();
-      await this.opts.session.heartbeat();
-    }
-    this.arm();
+        }
+      }
+      this.arm();
+    });
+  }
+
+  close(): Promise<void> {
+    return this.serial(async () => {
+      clearTimeout(this.timer);
+      if (!this.active) return;
+      this.active = false;
+      await this.opts.session.release();
+    });
+  }
+
+  /** The judge vanished under an active session (crash, reap): forget it so the next ensure acquires again. */
+  lost(): void {
+    clearTimeout(this.timer);
+    this.active = false;
   }
 
   private arm() {
@@ -93,18 +109,28 @@ export class JudgeRuntime {
     this.timer.unref?.();
   }
 
-  async close(): Promise<void> {
-    clearTimeout(this.timer);
-    if (!this.active) return;
-    this.active = false;
-    this.pending = undefined;
-    await this.opts.session.release();
+  private serial<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.chain.then(fn, fn);
+    this.chain = run.catch(() => {});
+    return run;
   }
 }
+
+/** Connection refused, a 5xx from llama-server or a request timeout: the judge is gone, not the question bad. */
+const judgeGone = (error: unknown) =>
+  (error instanceof TypeError && /fetch failed/.test(error.message)) ||
+  (error instanceof Error && /local judge HTTP 5\d\d/.test(error.message)) ||
+  (error instanceof DOMException && error.name === "TimeoutError");
 
 export function withRuntime(runtime: JudgeRuntime, decide: Decide): Decide {
   return async (state, questions, opts) => {
     await runtime.ensure();
-    return decide(state, questions, opts);
+    try {
+      return await decide(state, questions, opts);
+    } catch (error) {
+      if (!judgeGone(error)) throw error;
+      runtime.lost();
+      throw new JudgeUnavailableError("judge_unavailable", String(error).slice(0, 200));
+    }
   };
 }
