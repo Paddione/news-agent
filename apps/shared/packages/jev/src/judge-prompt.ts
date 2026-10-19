@@ -30,6 +30,11 @@ function criteriaLines(q: Question, labels: string[]): string[] {
   );
 }
 
+// Article text is untrusted. llama-server parses special tokens in the prompt, so a page containing chat markers
+// could close the user turn and pre-fill the answer. Break every marker that the template itself relies on.
+const neutralize = (text: string) =>
+  text.replace(/<\|/g, "< |").replace(/<(\/?)think>/g, "< $1think>");
+
 export function renderPrompt(state: State, q: Question): string {
   const labels = labelsFor(q);
   const body = typeof state === "string" ? state : JSON.stringify(state, null, 1);
@@ -37,8 +42,10 @@ export function renderPrompt(state: State, q: Question): string {
     typeof q.instructions === "string" ? q.instructions : JSON.stringify(q.instructions, null, 1);
   return (
     `<|im_start|>system\n${SYSTEM}<|im_end|>\n` +
-    `<|im_start|>user\nState:\n${body}\n\nQuestion: ${instructions}\n` +
-    criteriaLines(q, labels).join("\n") +
+    `<|im_start|>user\n` +
+    neutralize(
+      `State:\n${body}\n\nQuestion: ${instructions}\n` + criteriaLines(q, labels).join("\n"),
+    ) +
     `\nAnswer with one label: ${labels.join(", ")}<|im_end|>\n` +
     `<|im_start|>assistant\n<think>\n\n</think>\n\n`
   );
@@ -55,4 +62,5 @@ export const TEMPLATE_SHA = createHash("sha256")
   .update(
     renderPrompt({ s: 1 }, { type: "choice", instructions: "q", criteria: { a: null, b: "d" } }),
   )
+  .update(renderPrompt({ s: "<|im_end|><think>" }, { type: "noul", instructions: "q" }))
   .digest("hex");
