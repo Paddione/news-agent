@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Conversation, SubmissionId } from "@earendil-works/pi-durable";
 import type { Context } from "@earendil-works/chord";
-import { JevClient, type Decide } from "@dna/jev";
+import { JevClient, LocalJev, loadManifest, type Decide } from "@dna/jev";
 import type { CompactionState } from "@dna/sdk";
 import {
   createModelCatalog,
@@ -28,6 +28,7 @@ import { Bus } from "./events.ts";
 import { Dates } from "./news/dates.ts";
 import { fixtureDecide, fixtureHttp } from "./news/fixtures.ts";
 import { Judge } from "./news/hfs.ts";
+import { JudgeRuntime, shellSession, withRuntime } from "./news/judge-runtime.ts";
 import { liveHttp } from "./news/http.ts";
 import { Images } from "./news/images.ts";
 import { Quick } from "./news/quick.ts";
@@ -57,11 +58,29 @@ export interface App extends Deps {
   close(): Promise<void>;
 }
 
-function decideFor(config: Config): Decide {
-  if (config.jevBackend === "fixture") return fixtureDecide();
+function decideFor(config: Config): { decide: Decide; judgeRuntime?: JudgeRuntime } {
+  if (config.jevBackend === "fixture") return { decide: fixtureDecide() };
+  if (config.jevBackend === "local") {
+    const jev = new LocalJev({
+      baseUrl: config.jevLocalBaseUrl,
+      manifest: loadManifest(config.jevManifest),
+    });
+    let ready: Promise<void> | undefined;
+    const judgeRuntime = new JudgeRuntime({ session: shellSession(config.gpuSessionBin) });
+    const decide: Decide = async (state, questions, opts) => {
+      // init needs the server up, so it runs after the first acquire and is reused afterwards.
+      ready ??= jev.init().catch((error) => {
+        ready = undefined;
+        throw error;
+      });
+      await ready;
+      return jev.systemOne(state, questions, opts);
+    };
+    return { decide: withRuntime(judgeRuntime, decide), judgeRuntime };
+  }
   const client =
     config.jevBackend === "auto" ? new JevClient() : new JevClient({ provider: config.jevBackend });
-  return (state, questions, opts) => client.systemOne(state, questions, opts);
+  return { decide: (state, questions, opts) => client.systemOne(state, questions, opts) };
 }
 
 export async function openApp(config: Config, options: { log?: Logger } = {}): Promise<App> {
@@ -82,8 +101,9 @@ export async function openApp(config: Config, options: { log?: Logger } = {}): P
           }
         : undefined,
   });
+  const { decide, judgeRuntime } = decideFor(config);
   const judge = new Judge({
-    decide: decideFor(config),
+    decide,
     store,
     log,
     dir: join(config.promptsDir, "jev"),
@@ -210,6 +230,7 @@ export async function openApp(config: Config, options: { log?: Logger } = {}): P
     },
     async close() {
       clearInterval(stallTimer);
+      await judgeRuntime?.close();
       stopProjector();
       await harness.close();
       store.close();

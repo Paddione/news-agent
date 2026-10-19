@@ -1,4 +1,5 @@
 // Server configuration from the root .env and flags. Every default here is documented in .env.example.
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { loadNetwork, repoRoot } from "@dna/sdk/node";
@@ -18,7 +19,11 @@ export interface Config {
   /** DNA_PROVIDER=local: OpenAI-compatible endpoint and context window of the one local model. */
   localBaseUrl: string;
   localContextWindow: number;
-  jevBackend: "auto" | "fixture" | "mock" | "openrouter" | "typesafe";
+  jevBackend: "auto" | "fixture" | "mock" | "openrouter" | "typesafe" | "local";
+  /** JEV_BACKEND=local: the judge's llama-server, its manifest, and the GPU session command. */
+  jevLocalBaseUrl: string;
+  jevManifest: string;
+  gpuSessionBin: string;
   /** auto | web | fallback | firecrawl | fixture; SearchService warns on anything else and searches the web. */
   searchMode: string;
   firecrawlKey?: string;
@@ -75,6 +80,10 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     provider,
     jevBackend:
       (env.JEV_BACKEND as Config["jevBackend"]) ?? (searchMode === "fixture" ? "fixture" : "auto"),
+    jevLocalBaseUrl: env.JEV_LOCAL_BASE_URL?.trim() || "http://127.0.0.1:8010",
+    jevManifest: env.JEV_MANIFEST?.trim() || "/mnt/f/models/news-judge/current/manifest.json",
+    gpuSessionBin:
+      env.NEWS_GPU_SESSION?.trim() || join(homedir(), "unsloth-boxes/scripts/news-gpu-session"),
     searchMode,
     firecrawlKey: env.FIRECRAWL_API_KEY?.trim() || undefined,
     sweepCredits: int(env.DNA_FIRECRAWL_SWEEP_CREDITS, 5),
