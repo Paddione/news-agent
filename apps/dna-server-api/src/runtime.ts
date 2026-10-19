@@ -27,6 +27,7 @@ import type { Deps } from "./deps.ts";
 import { Bus } from "./events.ts";
 import { Dates } from "./news/dates.ts";
 import { fixtureDecide, fixtureHttp } from "./news/fixtures.ts";
+import { jsonlCapture } from "./news/capture.ts";
 import { Judge } from "./news/hfs.ts";
 import { JudgeRuntime, shellSession, withRuntime } from "./news/judge-runtime.ts";
 import { liveHttp } from "./news/http.ts";
@@ -109,6 +110,7 @@ export async function openApp(
     : decideFor(config);
   const judge = new Judge({
     decide,
+    capture: config.jevCapture ? jsonlCapture(config.jevCapture, log) : undefined,
     store,
     log,
     dir: join(config.promptsDir, "jev"),

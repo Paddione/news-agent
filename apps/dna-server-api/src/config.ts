@@ -24,6 +24,8 @@ export interface Config {
   jevLocalBaseUrl: string;
   jevManifest: string;
   gpuSessionBin: string;
+  /** JEV_CAPTURE: append every rendered jev call to this JSONL file. */
+  jevCapture?: string;
   /** auto | web | fallback | firecrawl | fixture; SearchService warns on anything else and searches the web. */
   searchMode: string;
   firecrawlKey?: string;
@@ -84,6 +86,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     jevManifest: env.JEV_MANIFEST?.trim() || "/mnt/f/models/news-judge/current/manifest.json",
     gpuSessionBin:
       env.NEWS_GPU_SESSION?.trim() || join(homedir(), "unsloth-boxes/scripts/news-gpu-session"),
+    jevCapture: env.JEV_CAPTURE?.trim() || undefined,
     searchMode,
     firecrawlKey: env.FIRECRAWL_API_KEY?.trim() || undefined,
     sweepCredits: int(env.DNA_FIRECRAWL_SWEEP_CREDITS, 5),
