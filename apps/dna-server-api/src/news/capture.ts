@@ -9,6 +9,8 @@ export interface CaptureRecord {
   command: string;
   version: number;
   item_id: number | null;
+  /** When the call was made: judge-feedback picks the call a reader saw before giving feedback. */
+  at: string;
   state: State;
   questions: Questions;
 }

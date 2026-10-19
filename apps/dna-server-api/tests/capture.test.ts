@@ -10,6 +10,7 @@ const rec = {
   command: "hfs",
   version: 2,
   item_id: 7,
+  at: "2026-10-20T00:00:00.000Z",
   state: { t: 1 },
   questions: { q: { type: "noul" as const, instructions: "x" } },
 };
@@ -67,11 +68,14 @@ test("Judge.run hands every rendered call to the capture hook", async () => {
       command: string;
       version: number;
       item_id: number;
+      at: string;
       state: { title: string };
       questions: object;
     };
     assert.equal(rec.command, "relevance");
     assert.equal(rec.item_id, 9);
+    // judge-feedback matches a reader's feedback to the call made before it
+    assert.ok(Math.abs(Date.parse(rec.at) - Date.now()) < 60_000);
     assert.equal(rec.state.title, "T");
     assert.ok("relevance" in rec.questions);
   } finally {

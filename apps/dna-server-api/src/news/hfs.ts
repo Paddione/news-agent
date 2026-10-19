@@ -88,6 +88,7 @@ export class Judge {
         command: cmd.name,
         version: cmd.version,
         item_id: ref.itemId ?? null,
+        at: new Date().toISOString(),
         state: rendered.state,
         questions: rendered.questions,
       });
