@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { StatsRepo, windowStart } from "../src/db/repos/stats.ts";
+import { parseDays } from "../src/routes/stats.ts";
 import { tempStore } from "./helpers.ts";
 
 const NOW = new Date("2026-10-20T12:00:00Z");
@@ -128,4 +129,11 @@ test("an empty db gives empty blocks and agreement null", () => {
   } finally {
     cleanup();
   }
+});
+
+test("parseDays defaults to 7 and refuses values outside 1..30", () => {
+  assert.equal(parseDays(undefined), 7);
+  assert.equal(parseDays("30"), 30);
+  for (const bad of ["0", "31", "2.5", "x", ""])
+    assert.throws(() => parseDays(bad), /days must be an integer from 1 to 30/);
 });
