@@ -2083,3 +2083,34 @@ a.source:hover {
   border-radius: 2px;
   background: var(--accent);
 }
+.figures-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.figure-chip {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.figure-chip b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.figures-full {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+.figures-table th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--muted);
+  padding-right: 12px;
+}
+.figures-table td {
+  font-variant-numeric: tabular-nums;
+}

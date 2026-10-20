@@ -810,6 +810,36 @@ try {
   await page.getByRole("button", { name: "Toggle the agent column" }).click();
   await page.locator('[data-col="agent"]').waitFor();
 
+  // ---------------------------------------------------------------- figures
+  // Figures: give the first news card two backed numbers, reload, and check the compact row and the dialog bars.
+  {
+    const db = new DatabaseSync(join(tmp, "data", "dna.sqlite"));
+    const feed = await call("GET", "/v1/feed");
+    const figCard = feed.items.find((c) => c.kind === "news" && c.component).id;
+    db.prepare(
+      "UPDATE cards SET props_json = json_set(props_json, '$.figures', json(?)) WHERE id = ?",
+    ).run(
+      JSON.stringify([
+        { label: "New model", value: 72.5, unit: "%", group: "swe" },
+        { label: "Previous", value: 61, unit: "%", group: "swe" },
+      ]),
+      figCard,
+    );
+    db.close();
+    await page.reload();
+    const row = page.locator(`[data-card-id="${figCard}"] .figures-compact .figure-chip`);
+    await row.first().waitFor();
+    check((await row.count()) === 2, "figures render compact on the card");
+    await page.locator(`[data-card-id="${figCard}"] button[aria-label="Card details"]`).click();
+    await page.locator(".card-detail .figures-full svg.viz-bar").waitFor();
+    check(true, "figures render compact on the card and as bars in the detail dialog");
+    await page.keyboard.press("Escape");
+    await page
+      .locator(".card-detail button[aria-label='Close']")
+      .click()
+      .catch(() => {});
+  }
+
   // ---------------------------------------------------------------- capabilities
   const { CAPABILITY_IDS } = await import(
     join(root, "apps/shared/packages/dna-sdk/src/capabilities.ts")
