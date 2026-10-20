@@ -10,6 +10,7 @@ import {
   type StoryAction,
   type StoryVerdict,
 } from "./story-policy.ts";
+import { JudgeUnavailableError } from "./judge-runtime.ts";
 
 type StoryDeps = Pick<Deps, "store" | "judge" | "http" | "log" | "bus">;
 
@@ -147,6 +148,7 @@ export class StoryMatcher {
           try {
             matches.push({ other, ...(await this.compare(item, other, sweepId)) });
           } catch (error) {
+            if (error instanceof JudgeUnavailableError) throw error;
             failed = true;
             log.warn("sweep.same_story_failed", {
               itemId: item.id,

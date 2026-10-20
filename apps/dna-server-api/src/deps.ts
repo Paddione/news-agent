@@ -1,6 +1,7 @@
 // What tools, tasks and routes share. Built once in runtime.ts.
 import type { ModelCatalog } from "@dna/durable-agent";
 import type { Logger } from "@dna/sdk/node";
+import type { AgentRoute } from "./agents/model-route.ts";
 import type { Config } from "./config.ts";
 import type { Store } from "./db/store.ts";
 import type { Bus } from "./events.ts";
@@ -28,4 +29,6 @@ export interface Deps {
   dates: Dates;
   /** How often scheduled sweeps run. */
   schedule: Schedule;
+  /** DNA_FALLBACK_*: local agent model or the hosted fallback, checked per sweep. Unset without a fallback. */
+  route?: AgentRoute;
 }

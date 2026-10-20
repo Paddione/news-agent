@@ -1,6 +1,9 @@
 // The model catalog: Haiku 5.5 (default) plus 29 more models, all through OpenRouter.
 // DNA_PROVIDER=faux swaps in a free deterministic model with the same 1M window.
-import { createModels, type MutableModels } from "@earendil-works/pi-ai/models";
+// DNA_PROVIDER=local serves one open-weight model from an OpenAI-compatible endpoint (llama-server).
+import { envApiKeyAuth } from "@earendil-works/pi-ai";
+import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
+import { createModels, createProvider, type MutableModels } from "@earendil-works/pi-ai/models";
 import { openrouterProvider } from "@earendil-works/pi-ai/providers/openrouter";
 import type { ModelRef } from "@earendil-works/pi-durable";
 
@@ -75,9 +78,27 @@ export const CATALOG: readonly CatalogEntry[] = [
   },
 ];
 
+export interface LocalOptions {
+  baseUrl: string;
+  model: string;
+  contextWindow: number;
+  /** A hosted OpenAI-compatible model the app switches to while the local server is down. */
+  fallback?: FallbackOptions;
+}
+
+export interface FallbackOptions {
+  baseUrl: string;
+  model: string;
+  contextWindow: number;
+  /** Env names pi-ai reads the bearer key from, first set wins. */
+  apiKeyEnv: string[];
+  /** USD per 1M tokens, for the cost telemetry. */
+  cost: { input: number; output: number };
+}
+
 export interface ModelCatalog {
   readonly models: MutableModels;
-  readonly provider: "openrouter" | "faux";
+  readonly provider: "openrouter" | "faux" | "local";
   readonly defaultModel: ModelRef;
   list(): ModelInfo[];
   /** A catalog id to a pi-durable model reference; throws for ids outside the catalog. */
@@ -86,11 +107,13 @@ export interface ModelCatalog {
 }
 
 export function createModelCatalog(options: {
-  provider: "openrouter" | "faux";
+  provider: "openrouter" | "faux" | "local";
   installFaux?: (models: MutableModels) => void;
   defaultModel?: string;
+  local?: LocalOptions;
 }): ModelCatalog {
   const models = createModels();
+  if (options.provider === "local") return localCatalog(models, options.local);
   if (options.provider === "faux") {
     if (!options.installFaux) throw new Error("A faux catalog needs installFaux");
     options.installFaux(models);
@@ -148,5 +171,96 @@ export function createModelCatalog(options: {
     list,
     ref,
     info: (id) => list().find((m) => m.id === id),
+  };
+}
+
+function localCatalog(models: MutableModels, local: LocalOptions | undefined): ModelCatalog {
+  if (!local)
+    throw new Error("A local catalog needs local options (baseUrl, model, contextWindow)");
+  const free = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+  models.setProvider(
+    createProvider({
+      id: "local",
+      name: "Local llama.cpp",
+      baseUrl: local.baseUrl,
+      // llama-server ignores the key; DNA_LOCAL_API_KEY=local satisfies pi-ai's auth resolution.
+      auth: { apiKey: envApiKeyAuth("Local endpoint key", ["DNA_LOCAL_API_KEY"]) },
+      models: [
+        {
+          id: local.model,
+          name: local.model,
+          api: "openai-completions",
+          provider: "local",
+          baseUrl: local.baseUrl,
+          input: ["text"],
+          cost: free,
+          reasoning: false,
+          contextWindow: local.contextWindow,
+          maxTokens: 8192,
+        },
+      ],
+      api: openAICompletionsApi(),
+    }),
+  );
+  const fallback = local.fallback;
+  if (fallback)
+    models.setProvider(
+      createProvider({
+        id: "fallback",
+        name: "Hosted fallback",
+        baseUrl: fallback.baseUrl,
+        auth: { apiKey: envApiKeyAuth("Fallback endpoint key", fallback.apiKeyEnv) },
+        models: [
+          {
+            id: fallback.model,
+            name: fallback.model,
+            api: "openai-completions",
+            provider: "fallback",
+            baseUrl: fallback.baseUrl,
+            input: ["text"],
+            cost: { ...fallback.cost, cacheRead: 0, cacheWrite: 0 },
+            reasoning: false,
+            contextWindow: fallback.contextWindow,
+            maxTokens: 8192,
+          },
+        ],
+        api: openAICompletionsApi(),
+      }),
+    );
+  const info: ModelInfo = {
+    id: local.model,
+    name: local.model,
+    tier: "L",
+    icon: "qwen.png",
+    provider: "local",
+    contextWindow: local.contextWindow,
+    reasoning: false,
+    cost: { input: 0, output: 0 },
+  };
+  const fallbackInfo: ModelInfo | undefined = fallback && {
+    id: fallback.model,
+    name: fallback.model,
+    tier: "L",
+    icon: "qwen.png",
+    provider: "fallback",
+    contextWindow: fallback.contextWindow,
+    reasoning: false,
+    cost: fallback.cost,
+  };
+  const all = fallbackInfo ? [info, fallbackInfo] : [info];
+  const ref = (id: string): ModelRef => {
+    if (id === local.model) return { provider: "local", modelId: id };
+    if (fallback && id === fallback.model) return { provider: "fallback", modelId: id };
+    throw new Error(
+      `Unknown model ${id}. The local catalog serves ${all.map((m) => m.id).join(", ")}.`,
+    );
+  };
+  return {
+    models,
+    provider: "local",
+    defaultModel: ref(local.model),
+    list: () => all,
+    ref,
+    info: (id) => all.find((m) => m.id === id),
   };
 }

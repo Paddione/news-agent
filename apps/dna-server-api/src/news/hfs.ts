@@ -21,6 +21,7 @@ import {
 } from "@dna/jev";
 import type { Finding, Item } from "../db/repos/news.ts";
 import type { Store } from "../db/store.ts";
+import type { CaptureRecord } from "./capture.ts";
 import type { CallRef } from "./search/index.ts";
 import { sectionKeywords, tasteExamples, topicChoices } from "./taste.ts";
 
@@ -51,7 +52,16 @@ export class Judge {
   readonly commands: Record<string, JevCommand>;
   readonly ledger: JevLedger;
 
-  constructor(private readonly deps: { decide: Decide; store: Store; log?: Logger; dir: string }) {
+  constructor(
+    private readonly deps: {
+      decide: Decide;
+      store: Store;
+      log?: Logger;
+      dir: string;
+      /** JEV_CAPTURE: every rendered call, the raw material for the local judge's training corpus. */
+      capture?: (rec: CaptureRecord) => void;
+    },
+  ) {
     this.commands = Object.fromEntries(
       listCommands(deps.dir).map((name) => [name, loadCommand(name, deps.dir)]),
     );
@@ -74,6 +84,14 @@ export class Judge {
     const cmd = this.commands[name];
     try {
       const { result, rendered } = await runCommand(cmd, vars, this.deps.decide);
+      this.deps.capture?.({
+        command: cmd.name,
+        version: cmd.version,
+        item_id: ref.itemId ?? null,
+        at: new Date().toISOString(),
+        state: rendered.state,
+        questions: rendered.questions,
+      });
       const record = this.ledger.record(result, { command: cmd.name, version: cmd.version });
       this.deps.store.telemetry.jev({
         command: cmd.name,

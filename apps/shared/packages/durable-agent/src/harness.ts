@@ -52,7 +52,11 @@ export async function openDurableHarness(options: DurableHarnessOptions): Promis
         registry,
         settings: {
           extensions: options.defaults ?? options.extensions,
-          stream: { timeoutMs: 180_000, maxRetries: 2 },
+          // A local 27B on one llama-server slot queues behind other clients; give it longer.
+          stream: {
+            timeoutMs: options.catalog.provider === "local" ? 300_000 : 180_000,
+            maxRetries: 2,
+          },
           retry: {
             enabled: true,
             maxRetries: options.maxRetries ?? 4,

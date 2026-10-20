@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Conversation, SubmissionId } from "@earendil-works/pi-durable";
 import type { Context } from "@earendil-works/chord";
-import { JevClient, type Decide } from "@dna/jev";
+import { JevClient, LocalJev, loadManifest, TEMPLATE_SHA, type Decide } from "@dna/jev";
 import type { CompactionState } from "@dna/sdk";
 import {
   createModelCatalog,
@@ -23,11 +23,14 @@ import { createAgents, type Agents } from "./agents/index.ts";
 import { fauxRules } from "./agents/faux-script.ts";
 import type { Config } from "./config.ts";
 import { openStore } from "./db/store.ts";
+import { AgentModelRoute, localProbe, ModelRoute } from "./agents/model-route.ts";
 import type { Deps } from "./deps.ts";
 import { Bus } from "./events.ts";
 import { Dates } from "./news/dates.ts";
 import { fixtureDecide, fixtureHttp } from "./news/fixtures.ts";
+import { jsonlCapture } from "./news/capture.ts";
 import { Judge } from "./news/hfs.ts";
+import { JudgeRuntime, shellSession, withRuntime } from "./news/judge-runtime.ts";
 import { liveHttp } from "./news/http.ts";
 import { Images } from "./news/images.ts";
 import { Quick } from "./news/quick.ts";
@@ -57,14 +60,43 @@ export interface App extends Deps {
   close(): Promise<void>;
 }
 
-function decideFor(config: Config): Decide {
-  if (config.jevBackend === "fixture") return fixtureDecide();
+function decideFor(config: Config): { decide: Decide; judgeRuntime?: JudgeRuntime } {
+  if (config.jevBackend === "fixture") return { decide: fixtureDecide() };
+  if (config.jevBackend === "local") {
+    // node:test never touches a GPU session or a real judge: the same isolation JevClient.selectProvider applies.
+    if (process.env.NODE_TEST_CONTEXT && process.env.JEV_LIVE !== "1") {
+      const mock = new JevClient({ provider: "mock" });
+      return { decide: (state, questions, opts) => mock.systemOne(state, questions, opts) };
+    }
+    const manifest = loadManifest(config.jevManifest);
+    // Refuse at startup, before the first jev call would preempt the GPU for a judge that cannot be used.
+    if (manifest.template_sha !== TEMPLATE_SHA)
+      throw new Error(
+        `Judge ${manifest.version} (${config.jevManifest}) was trained on template ${manifest.template_sha.slice(0, 12)}, the runtime renders ${TEMPLATE_SHA.slice(0, 12)}. Retrain or roll back judge-prompt.ts.`,
+      );
+    const jev = new LocalJev({ baseUrl: config.jevLocalBaseUrl, manifest });
+    let ready: Promise<void> | undefined;
+    const judgeRuntime = new JudgeRuntime({ session: shellSession(config.gpuSessionBin) });
+    const decide: Decide = async (state, questions, opts) => {
+      // init needs the server up, so it runs after the first acquire and is reused afterwards.
+      ready ??= jev.init().catch((error) => {
+        ready = undefined;
+        throw error;
+      });
+      await ready;
+      return jev.systemOne(state, questions, opts);
+    };
+    return { decide: withRuntime(judgeRuntime, decide), judgeRuntime };
+  }
   const client =
     config.jevBackend === "auto" ? new JevClient() : new JevClient({ provider: config.jevBackend });
-  return (state, questions, opts) => client.systemOne(state, questions, opts);
+  return { decide: (state, questions, opts) => client.systemOne(state, questions, opts) };
 }
 
-export async function openApp(config: Config, options: { log?: Logger } = {}): Promise<App> {
+export async function openApp(
+  config: Config,
+  options: { log?: Logger; /** Tests: replace the jev backend. */ decide?: Decide } = {},
+): Promise<App> {
   mkdirSync(config.dataDir, { recursive: true });
   const log = options.log ?? createLogger("api").child({ device: config.device });
   const store = openStore(config.dataDir, config.configDir);
@@ -72,10 +104,47 @@ export async function openApp(config: Config, options: { log?: Logger } = {}): P
   const catalog = createModelCatalog({
     provider: config.provider,
     installFaux: (models) => installScriptedFaux(models, fauxRules()),
-    defaultModel: config.provider === "faux" ? undefined : config.model,
+    defaultModel: config.provider === "openrouter" ? config.model : undefined,
+    local:
+      config.provider === "local"
+        ? {
+            baseUrl: config.localBaseUrl,
+            model: config.model,
+            contextWindow: config.localContextWindow,
+            fallback: config.fallback && {
+              baseUrl: config.fallback.baseUrl,
+              model: config.fallback.model,
+              // Same window as local, so compaction points stay valid when a sweep switches models.
+              contextWindow: config.localContextWindow,
+              apiKeyEnv: ["DNA_FALLBACK_API_KEY", "META_API_KEY"],
+              cost: config.fallback.cost,
+            },
+          }
+        : undefined,
   });
+  const route =
+    config.provider === "local" && config.fallback
+      ? new AgentModelRoute(
+          new ModelRoute({
+            localModel: config.model,
+            fallbackModel: config.fallback.model,
+            dailyCap: config.fallback.dailySweeps,
+            minIntervalMs: config.fallback.minIntervalMinutes * 60_000,
+            lastFallback: {
+              get: () => store.settings.get<number | undefined>("fallbackLastSweepAt", undefined),
+              set: (ms) => store.settings.set("fallbackLastSweepAt", ms),
+            },
+            probe: localProbe(config.localBaseUrl),
+          }),
+          { catalog, selected: () => store.settings.get("model", config.model), log },
+        )
+      : undefined;
+  const { decide, judgeRuntime } = options.decide
+    ? { decide: options.decide, judgeRuntime: undefined }
+    : decideFor(config);
   const judge = new Judge({
-    decide: decideFor(config),
+    decide,
+    capture: config.jevCapture ? jsonlCapture(config.jevCapture, log) : undefined,
     store,
     log,
     dir: join(config.promptsDir, "jev"),
@@ -101,7 +170,7 @@ export async function openApp(config: Config, options: { log?: Logger } = {}): P
     offline: config.provider === "faux" || config.searchMode === "fixture",
   });
   const bus = new Bus();
-  const quick = new Quick({ catalog, store, log });
+  const quick = new Quick({ catalog, store, log, route });
   const dates = new Dates({ http, store, log, quick });
   const deps: Deps = {
     config,
@@ -116,6 +185,7 @@ export async function openApp(config: Config, options: { log?: Logger } = {}): P
     quick,
     dates,
     schedule: new Schedule({ store, cronSchedule: config.cronSchedule }),
+    route,
   };
   const agents = createAgents(deps);
 
@@ -202,6 +272,7 @@ export async function openApp(config: Config, options: { log?: Logger } = {}): P
     },
     async close() {
       clearInterval(stallTimer);
+      await judgeRuntime?.close();
       stopProjector();
       await harness.close();
       store.close();

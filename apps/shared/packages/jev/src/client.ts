@@ -13,7 +13,8 @@ import {
   type SystemOneResponse,
 } from "./types.ts";
 
-export type JevProvider = "mock" | "openrouter" | "typesafe";
+export type JevProvider = "mock" | "openrouter" | "typesafe" | "local";
+type ClientProvider = Exclude<JevProvider, "local">;
 
 const ENDPOINTS = {
   openrouter: "https://openrouter.ai/api/alpha/decisions",
@@ -52,7 +53,7 @@ export type JevCost =
 
 export interface JevClientOptions {
   /** Overrides test isolation, JEV_BACKEND, and automatic key-based selection. */
-  provider?: JevProvider;
+  provider?: ClientProvider;
   /** Requires opts.provider to explicitly name a live provider. */
   apiKey?: string;
   /** Full endpoint URL (not an origin). Redirects are refused. */
@@ -103,7 +104,7 @@ export type JevEvent =
   | { kind: "response"; result: SystemOneResult };
 
 export class JevClient {
-  readonly provider: JevProvider;
+  readonly provider: ClientProvider;
   private readonly apiKey?: string;
   private readonly endpoint?: string;
   private readonly mock = new MockJev();
@@ -272,7 +273,7 @@ export class JevClient {
   }
 }
 
-function selectProvider(explicit?: JevProvider): JevProvider {
+function selectProvider(explicit?: ClientProvider): ClientProvider {
   // node:test cannot accidentally use ambient live credentials/overrides.
   // Explicit opts.provider or the existing JEV_LIVE=1 opt-in bypass isolation.
   const isolated = process.env.NODE_TEST_CONTEXT && process.env.JEV_LIVE !== "1";

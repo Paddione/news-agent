@@ -1,4 +1,5 @@
 // Server configuration from the root .env and flags. Every default here is documented in .env.example.
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { loadNetwork, repoRoot } from "@dna/sdk/node";
@@ -14,8 +15,27 @@ export interface Config {
   rootDir: string;
   configDir: string;
   promptsDir: string;
-  provider: "openrouter" | "faux";
-  jevBackend: "auto" | "fixture" | "mock" | "openrouter" | "typesafe";
+  provider: "openrouter" | "faux" | "local";
+  /** DNA_PROVIDER=local: OpenAI-compatible endpoint and context window of the one local model. */
+  localBaseUrl: string;
+  localContextWindow: number;
+  /** DNA_FALLBACK_*: hosted OpenAI-compatible model for sweeps while the local server is down (key: DNA_FALLBACK_API_KEY
+   * or META_API_KEY). Off unless base URL and model are set. */
+  fallback?: {
+    baseUrl: string;
+    model: string;
+    dailySweeps: number;
+    /** DNA_FALLBACK_MIN_INTERVAL_MINUTES: at most one fallback sweep per this many minutes (default 120). */
+    minIntervalMinutes: number;
+    cost: { input: number; output: number };
+  };
+  jevBackend: "auto" | "fixture" | "mock" | "openrouter" | "typesafe" | "local";
+  /** JEV_BACKEND=local: the judge's llama-server, its manifest, and the GPU session command. */
+  jevLocalBaseUrl: string;
+  jevManifest: string;
+  gpuSessionBin: string;
+  /** JEV_CAPTURE: append every rendered jev call to this JSONL file. */
+  jevCapture?: string;
   /** auto | web | fallback | firecrawl | fixture; SearchService warns on anything else and searches the web. */
   searchMode: string;
   firecrawlKey?: string;
@@ -54,7 +74,10 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     strict: false,
   });
   const rootDir = repoRoot();
-  const provider = env.DNA_PROVIDER === "faux" ? "faux" : "openrouter";
+  const provider =
+    env.DNA_PROVIDER === "faux" ? "faux" : env.DNA_PROVIDER === "local" ? "local" : "openrouter";
+  const fallbackModel =
+    provider === "local" ? "Qwen3.8-27B-gsq-iq3xxs" : "anthropic/claude-haiku-5.5";
   const searchMode = env.DNA_SEARCH_MODE?.trim() || "auto";
   const config: Config = {
     device: String(values.device ?? env.DNA_DEVICE_NAME ?? "local"),
@@ -69,14 +92,22 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     provider,
     jevBackend:
       (env.JEV_BACKEND as Config["jevBackend"]) ?? (searchMode === "fixture" ? "fixture" : "auto"),
+    jevLocalBaseUrl: env.JEV_LOCAL_BASE_URL?.trim() || "http://127.0.0.1:8010",
+    jevManifest: env.JEV_MANIFEST?.trim() || "/mnt/f/models/news-judge/current/manifest.json",
+    gpuSessionBin:
+      env.NEWS_GPU_SESSION?.trim() || join(homedir(), "unsloth-boxes/scripts/news-gpu-session"),
+    jevCapture: env.JEV_CAPTURE?.trim() || undefined,
     searchMode,
     firecrawlKey: env.FIRECRAWL_API_KEY?.trim() || undefined,
     sweepCredits: int(env.DNA_FIRECRAWL_SWEEP_CREDITS, 5),
     dailyCredits: int(env.DNA_FIRECRAWL_DAILY_CREDITS, 40),
     sweepQueries: int(env.DNA_SWEEP_QUERIES, 15),
     maxSavedSources: int(env.DNA_MAX_SAVED_SOURCES, 25),
-    model: env.DNA_MODEL ?? "anthropic/claude-haiku-5.5",
-    researchModel: env.DNA_RESEARCH_MODEL ?? env.DNA_MODEL ?? "anthropic/claude-haiku-5.5",
+    model: env.DNA_MODEL ?? fallbackModel,
+    researchModel: env.DNA_RESEARCH_MODEL ?? env.DNA_MODEL ?? fallbackModel,
+    localBaseUrl: env.DNA_LOCAL_BASE_URL?.trim() || "http://127.0.0.1:1919/v1",
+    localContextWindow: int(env.DNA_LOCAL_CONTEXT, 153600),
+    fallback: fallbackFrom(env),
     imageModel: env.DNA_IMAGE_MODEL ?? "gpt-image-2.5-flare",
     imageQuality: env.DNA_IMAGE_QUALITY ?? "low",
     openaiKey: env.OPENAI_API_KEY?.trim() || undefined,
@@ -127,4 +158,20 @@ export function nextRun(schedule: string, now = new Date()): Date | undefined {
     return next;
   }
   return undefined;
+}
+
+function fallbackFrom(env: NodeJS.ProcessEnv): Config["fallback"] {
+  const baseUrl = env.DNA_FALLBACK_BASE_URL?.trim();
+  const model = env.DNA_FALLBACK_MODEL?.trim();
+  if (!baseUrl || !model) return undefined;
+  const [input = 0, output = 0] = (env.DNA_FALLBACK_COST ?? "")
+    .split(",")
+    .map((v) => Number(v) || 0);
+  return {
+    baseUrl,
+    model,
+    dailySweeps: int(env.DNA_FALLBACK_DAILY_SWEEPS, 24),
+    minIntervalMinutes: int(env.DNA_FALLBACK_MIN_INTERVAL_MINUTES, 120),
+    cost: { input, output },
+  };
 }

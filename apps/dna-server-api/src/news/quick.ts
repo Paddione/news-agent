@@ -18,7 +18,14 @@ export const DEFAULT_QUICK: QuickSetting = {
 };
 
 export class Quick {
-  constructor(private readonly deps: { catalog: ModelCatalog; store: Store; log: Logger }) {}
+  constructor(
+    private readonly deps: {
+      catalog: ModelCatalog;
+      store: Store;
+      log: Logger;
+      route?: { modelFor(id: string): string };
+    },
+  ) {}
 
   setting(): QuickSetting {
     return { ...DEFAULT_QUICK, ...this.deps.store.settings.get("quick", DEFAULT_QUICK) };
@@ -39,7 +46,7 @@ export class Quick {
   ): Promise<{ text: string; costUsd: number }> {
     const { model: id, thinkingLevel } = this.setting();
     const { catalog, log } = this.deps;
-    const ref = catalog.ref(id);
+    const ref = catalog.ref(this.deps.route?.modelFor(id) ?? id);
     const model = catalog.models.getModel(ref.provider, ref.modelId);
     if (!model) throw new Error(`The quick model ${id} is not available`);
     const started = Date.now();

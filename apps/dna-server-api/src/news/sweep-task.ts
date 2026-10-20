@@ -9,6 +9,7 @@ import type { Item } from "../db/repos/news.ts";
 import { fetchSource } from "./sources/index.ts";
 import { rankScore, weightsOf } from "./rank.ts";
 import { planQueries } from "./taste.ts";
+import { JudgeUnavailableError } from "./judge-runtime.ts";
 import { StoryMatcher } from "./stories.ts";
 import { packageRelease } from "./releases.ts";
 
@@ -122,6 +123,26 @@ export function createSweepTask(deps: Deps) {
       await body();
     } catch (error) {
       if (runtime.signal.aborted) throw error;
+      if (error instanceof JudgeUnavailableError) {
+        // The judge cannot run (training holds the GPU, or llama-server did not come up): retrying within this
+        // sweep would only wait out the same condition, so the sweep ends as skipped and the next tick tries again.
+        log.warn("sweep.judge_unavailable", { sweepId: task.input.sweepId, reason: error.reason });
+        store.sweeps.phase(task.input.sweepId, work.phase, "failed", error.message.slice(0, 300));
+        store.sweeps.update(task.input.sweepId, {
+          status: "skipped",
+          reason: error.reason,
+          endedAt: new Date().toISOString(),
+        });
+        publish(task.input.sweepId);
+        await runtime.commit(
+          () => ({
+            status: "terminal",
+            outcome: { status: "failed", error: { message: error.message } },
+          }),
+          ctx,
+        );
+        return;
+      }
       const attempt = (work.attempt ?? 0) + 1;
       const message = error instanceof Error ? error.message : String(error);
       log.warn("sweep.phase_failed", {
@@ -307,6 +328,7 @@ export function createSweepTask(deps: Deps) {
                 status: passed ? "candidate" : "rejected",
               });
             } catch (error) {
+              if (error instanceof JudgeUnavailableError) throw error;
               store.news.failItem(item.id, String(error));
             }
           });
@@ -421,6 +443,7 @@ export function createSweepTask(deps: Deps) {
                 });
                 store.news.updateItem(item.id, { importance });
               } catch (error) {
+                if (error instanceof JudgeUnavailableError) throw error;
                 log.warn("sweep.importance_failed", { itemId: item.id, error: String(error) });
                 store.news.updateItem(item.id, { importance: (item.attention ?? 50) / 100 });
               }

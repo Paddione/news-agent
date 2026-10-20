@@ -113,6 +113,21 @@ export async function startNewsSweep(
     deps.bus.publish({ type: "sweep", sweep: skipped });
     return { status: "skipped", sweep: skipped };
   }
+  const route = deps.route ? await deps.route.ensure(main, ctx) : "local";
+  if (route === "down" || route === "throttled") {
+    const skipped = store.sweeps.create({
+      requestId: input.requestId,
+      trigger: input.trigger,
+      status: "skipped",
+      reason:
+        route === "down"
+          ? "agent model unavailable: the local server is down and no fallback sweep is left today"
+          : `local server down, running on the fallback: at most one sweep every ${config.fallback?.minIntervalMinutes ?? 120} minutes`,
+    });
+    log.warn("sweep.skipped", { sweepId: skipped.id, requestId: input.requestId, route });
+    deps.bus.publish({ type: "sweep", sweep: skipped });
+    return { status: "skipped", sweep: skipped };
+  }
   const sweep = store.sweeps.create({
     requestId: input.requestId,
     trigger: input.trigger,
@@ -167,6 +182,7 @@ export async function startNewsSweep(
     trigger: input.trigger,
     submissionId: submission.id,
     searchMode: deps.search.mode,
+    route,
   });
   deps.bus.publish({ type: "sweep", sweep: updated });
   return { status: "accepted", sweep: updated, submissionId: submission.id as number };
