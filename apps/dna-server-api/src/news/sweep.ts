@@ -157,7 +157,8 @@ export async function startNewsSweep(
           ? "not used"
           : `${budget.available} this sweep, ${budget.dailyCap - budget.dailyUsed} today`,
       topic_keywords: store.taste
-        .keywords("topic", true)
+        .activeTopics()
+        .sort((a, b) => store.taste.effectiveWeight(b) - store.taste.effectiveWeight(a))
         .slice(0, 8)
         .map((k) => k.term)
         .join(", "),

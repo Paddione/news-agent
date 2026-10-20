@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { weightsOf } from "../src/news/rank.ts";
+import { applyFeedback, planQueries, topicChoices } from "../src/news/taste.ts";
 import { tempStore } from "./helpers.ts";
 
 test("seeded keywords start without a group", () => {
@@ -64,6 +66,97 @@ test("effective weight multiplies topic and group; disabled groups drop their to
     const active = store.taste.activeTopics().map((k) => k.term);
     assert.ok(!active.includes("MCP servers"));
     assert.ok(active.includes("loose topic"));
+  } finally {
+    cleanup();
+  }
+});
+
+function seedCard(store: any, title: string, matchedTopic?: string) {
+  const { item } = store.news.upsertItem({
+    url: `https://x.dev/${encodeURIComponent(title)}`,
+    title,
+    excerpt: title,
+  });
+  if (matchedTopic) store.news.updateItem(item.id, { matchedTopic });
+  const { card } = store.news.addCard({
+    kind: "news",
+    component: "brief",
+    props: { title, summary: title },
+    itemId: item.id,
+    toolCallId: `call-${title}`,
+    hfs: {
+      hype: 10,
+      facts: 80,
+      signal: 70,
+      primary: "facts",
+      labels: ["facts", "signal"],
+      ranked: [],
+      suspectCombo: false,
+    },
+  });
+  return { card, item };
+}
+
+/** Only the given topics stay enabled, so draws are deterministic. */
+function onlyTopics(store: any, terms: [string, number][]) {
+  for (const k of store.taste.keywords("topic")) store.taste.updateKeyword(k.id, { enabled: false });
+  return terms.map(([term, weight]) => store.taste.addKeyword("topic", term, weight));
+}
+
+test("planQueries draws by effective weight and skips disabled groups", () => {
+  const { store, cleanup } = tempStore();
+  try {
+    const [heavy, light, off] = onlyTopics(store, [
+      ["heavy topic", 1],
+      ["light topic", 1],
+      ["off topic", 2],
+    ]);
+    const big = store.taste.addGroup("big", 2);
+    const small = store.taste.addGroup("small", 0.1);
+    const disabled = store.taste.addGroup("disabled", 2, false);
+    store.taste.setKeywordGroup(heavy.id, big.id);
+    store.taste.setKeywordGroup(light.id, small.id);
+    store.taste.setKeywordGroup(off.id, disabled.id);
+    const first = planQueries(store, 1, { random: () => 0.5 }).map((k) => k.term);
+    assert.deepEqual(first, ["heavy topic"]);
+    const all = planQueries(store, 10, { random: () => 0.5 }).map((k) => k.term);
+    assert.ok(!all.includes("off topic"));
+  } finally {
+    cleanup();
+  }
+});
+
+test("weightsOf and topicChoices follow groups", () => {
+  const { store, cleanup } = tempStore();
+  try {
+    const [mcp, other] = onlyTopics(store, [
+      ["MCP servers", 1.5],
+      ["other topic", 1],
+    ]);
+    const res = store.taste.addGroup("agentic-resources", 1.2);
+    store.taste.setKeywordGroup(mcp.id, res.id);
+    const { item } = seedCard(store, "An MCP server", "mcp servers");
+    assert.equal(weightsOf(store, store.news.item(item.id)!).topic, 1.8);
+    const ops = store.taste.addGroup("agent-ops", 1, false);
+    store.taste.setKeywordGroup(other.id, ops.id);
+    const choices = Object.values(topicChoices(store.taste.activeTopics()));
+    assert.ok(choices.includes("MCP servers"));
+    assert.ok(!choices.includes("other topic"));
+  } finally {
+    cleanup();
+  }
+});
+
+test("feedback moves the topic weight, never the group weight", () => {
+  const { store, cleanup } = tempStore();
+  try {
+    const [mcp] = onlyTopics(store, [["MCP servers", 1.5]]);
+    const res = store.taste.addGroup("agentic-resources", 1.2);
+    store.taste.setKeywordGroup(mcp.id, res.id);
+    const { card } = seedCard(store, "An MCP server", "MCP servers");
+    applyFeedback(store, card, { signal: "less" });
+    assert.equal(store.taste.keyword(mcp.id)!.weight, 1.35);
+    assert.equal(store.taste.group(res.id)!.weight, 1.2);
   } finally {
     cleanup();
   }

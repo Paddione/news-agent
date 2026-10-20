@@ -81,8 +81,8 @@ export function tasteExamples(store: Store, limit = 6): TasteExample[] {
 }
 
 /**
- * A bag of topics for one sweep: a weighted draw without replacement, so a topic's chance follows its weight and every
- * enabled topic can come up. `exclude` keeps the terms of an earlier bag out (a second bag is a fresh shuffle).
+ * A bag of topics for one sweep: a weighted draw without replacement, so a topic's chance follows its effective weight
+ * (its own times its group's) and every active topic can come up. `exclude` keeps the terms of an earlier bag out (a second bag is a fresh shuffle).
  */
 export function planQueries(
   store: Store,
@@ -92,9 +92,12 @@ export function planQueries(
   const random = options.random ?? Math.random;
   const skip = new Set((options.exclude ?? []).map((t) => t.toLowerCase()));
   const bag = store.taste
-    .keywords("topic", true)
+    .activeTopics()
     .filter((k) => !skip.has(k.term.toLowerCase()))
-    .map((k) => ({ k, key: Math.pow(random(), 1 / Math.max(k.weight, 0.01)) }))
+    .map((k) => ({
+      k,
+      key: Math.pow(random(), 1 / Math.max(store.taste.effectiveWeight(k), 0.01)),
+    }))
     .sort((a, b) => b.key - a.key)
     .slice(0, count)
     .map((x) => x.k);
