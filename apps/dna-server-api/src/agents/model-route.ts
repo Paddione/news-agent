@@ -1,9 +1,10 @@
 // Which server answers for the local agent model: the local llama.cpp server while it is reachable, otherwise the
-// hosted fallback (DNA_FALLBACK_*), capped per day so a long outage cannot run up a bill. Checked once per sweep.
+// hosted fallback (DNA_FALLBACK_*), at most one sweep per interval and a daily cap, so a long outage cannot run up a
+// bill. Checked once per sweep.
 import type { Context } from "@earendil-works/chord";
 import type { Conversation } from "@earendil-works/pi-durable";
 
-export type Route = "local" | "fallback" | "down";
+export type Route = "local" | "fallback" | "throttled" | "down";
 
 /** What the sweep and the agents need from the route (AgentModelRoute; tests pass a stub). */
 export interface AgentRoute {
@@ -20,27 +21,40 @@ export interface ModelRouteOptions {
   probe: () => Promise<boolean>;
   /** Calendar day key for the cap; tests replace it. */
   day?: () => string;
+  /** Minimum time between two fallback sweeps; between them the route is "throttled". */
+  minIntervalMs?: number;
+  now?: () => number;
+  /** Where the last fallback sweep's time is kept, so a restart does not lift the throttle. */
+  lastFallback?: { get(): number | undefined; set(ms: number): void };
 }
 
 export class ModelRoute {
   private state: Route = "local";
   private used = { day: "", count: 0 };
+  private last?: number;
 
   constructor(private readonly options: ModelRouteOptions) {}
 
   async check(): Promise<Route> {
-    const { fallbackModel, dailyCap, probe } = this.options;
+    const { fallbackModel, dailyCap, probe, minIntervalMs = 0, lastFallback } = this.options;
     if (await probe()) return (this.state = "local");
-    const day = (this.options.day ?? (() => new Date().toISOString().slice(0, 10)))();
+    if (!fallbackModel) return (this.state = "down");
+    const now = (this.options.now ?? Date.now)();
+    const last = lastFallback?.get() ?? this.last;
+    if (last !== undefined && now - last < minIntervalMs) return (this.state = "throttled");
+    const day = (this.options.day ?? (() => new Date(now).toISOString().slice(0, 10)))();
     if (this.used.day !== day) this.used = { day, count: 0 };
-    if (!fallbackModel || this.used.count >= dailyCap) return (this.state = "down");
+    if (this.used.count >= dailyCap) return (this.state = "down");
     this.used.count++;
+    this.last = now;
+    lastFallback?.set(now);
     return (this.state = "fallback");
   }
 
-  /** The model id to run for a configured id: the local model maps to the fallback while the route is "fallback". */
+  /** The model id to run for a configured id: the local model maps to the fallback while the local server is down. */
   modelFor(id: string): string {
-    return this.state === "fallback" && id === this.options.localModel && this.options.fallbackModel
+    const hosted = this.state === "fallback" || this.state === "throttled";
+    return hosted && id === this.options.localModel && this.options.fallbackModel
       ? this.options.fallbackModel
       : id;
   }

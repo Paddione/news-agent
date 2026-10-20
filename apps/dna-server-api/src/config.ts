@@ -25,6 +25,8 @@ export interface Config {
     baseUrl: string;
     model: string;
     dailySweeps: number;
+    /** DNA_FALLBACK_MIN_INTERVAL_MINUTES: at most one fallback sweep per this many minutes (default 120). */
+    minIntervalMinutes: number;
     cost: { input: number; output: number };
   };
   jevBackend: "auto" | "fixture" | "mock" | "openrouter" | "typesafe" | "local";
@@ -169,6 +171,7 @@ function fallbackFrom(env: NodeJS.ProcessEnv): Config["fallback"] {
     baseUrl,
     model,
     dailySweeps: int(env.DNA_FALLBACK_DAILY_SWEEPS, 24),
+    minIntervalMinutes: int(env.DNA_FALLBACK_MIN_INTERVAL_MINUTES, 120),
     cost: { input, output },
   };
 }

@@ -129,6 +129,11 @@ export async function openApp(
             localModel: config.model,
             fallbackModel: config.fallback.model,
             dailyCap: config.fallback.dailySweeps,
+            minIntervalMs: config.fallback.minIntervalMinutes * 60_000,
+            lastFallback: {
+              get: () => store.settings.get<number | undefined>("fallbackLastSweepAt", undefined),
+              set: (ms) => store.settings.set("fallbackLastSweepAt", ms),
+            },
             probe: localProbe(config.localBaseUrl),
           }),
           { catalog, selected: () => store.settings.get("model", config.model), log },

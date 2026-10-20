@@ -66,6 +66,7 @@ test("config: the fallback is off until DNA_FALLBACK_BASE_URL and DNA_FALLBACK_M
     baseUrl: "https://api.meta.ai/v1",
     model: HOSTED,
     dailySweeps: 24,
+    minIntervalMinutes: 120,
     cost: { input: 0.1, output: 0.2 },
   });
 });
@@ -119,6 +120,59 @@ test("a sweep with no agent model (local down, no fallback left) is skipped, not
     assert.equal(result.status, "skipped");
     assert.match(result.sweep!.reason ?? "", /agent model unavailable/);
     assert.equal(app.store.sweeps.active().length, 0);
+  } finally {
+    await app.close();
+  }
+});
+
+test("fallback sweeps are throttled to one per interval, and the last one survives a restart", async () => {
+  let now = Date.parse("2026-10-20T10:00:00Z");
+  let saved: number | undefined;
+  const make = () =>
+    new ModelRoute({
+      localModel: LOCAL,
+      fallbackModel: HOSTED,
+      dailyCap: 24,
+      minIntervalMs: 2 * 3_600_000,
+      probe: async () => false,
+      now: () => now,
+      lastFallback: { get: () => saved, set: (ms) => void (saved = ms) },
+    });
+  const r = make();
+  assert.equal(await r.check(), "fallback");
+  now += 30 * 60_000;
+  assert.equal(await r.check(), "throttled");
+  assert.equal(r.modelFor(LOCAL), HOSTED); // chat and quick jobs still reach the fallback between sweeps
+  assert.equal(await make().check(), "throttled"); // a restarted API reads the stored time
+  now += 90 * 60_000;
+  assert.equal(await make().check(), "fallback");
+});
+
+test("a throttled route skips the sweep with the time the next fallback sweep may run", async () => {
+  const { mkdtempSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { loadConfig } = await import("../src/config.ts");
+  const { openApp } = await import("../src/runtime.ts");
+  const { startNewsSweep } = await import("../src/news/sweep.ts");
+  const dir = mkdtempSync(join(tmpdir(), "dna-route-"));
+  process.env.DNA_LOG_DIR = join(dir, "logs");
+  const app = await openApp(
+    loadConfig([], {
+      ...process.env,
+      DNA_PROVIDER: "faux",
+      DNA_SEARCH_MODE: "fixture",
+      DNA_DATA_DIR: dir,
+    }),
+  );
+  try {
+    app.route = { ensure: async () => "throttled" as const, modelFor: (id: string) => id };
+    const result = await startNewsSweep(app, app.main, app.ctx, {
+      trigger: "test",
+      requestId: "route-throttled",
+    });
+    assert.equal(result.status, "skipped");
+    assert.match(result.sweep!.reason ?? "", /fallback: at most one sweep every/);
   } finally {
     await app.close();
   }
