@@ -61,3 +61,13 @@ export const COMPONENT_SPECS: Record<CardComponent, ComponentSpec> = {
   },
   quote: { use: "one striking line", required: ["quote", "speaker"], rule: "none" },
 };
+
+/** A number the agent copied from the article. The server keeps only numbers it finds in the source text. */
+export interface Figure {
+  label: string;
+  value: number;
+  unit?: string;
+  group?: string;
+}
+export const FIGURES_MAX = 6;
+export const FIGURE_LABEL_MAX = 60;
