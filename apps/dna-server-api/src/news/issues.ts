@@ -18,6 +18,11 @@ export interface CreatedIssue {
 export interface IssueTracker {
   readonly repo: string;
   create(input: IssueInput): Promise<CreatedIssue>;
+  list(label: string): Promise<{ number: number; labels: string[] }[]>;
+  view(number: number): Promise<{ title: string; body: string; labels: string[] }>;
+  comment(number: number, body: string): Promise<string>;
+  addLabels(number: number, labels: string[]): Promise<void>;
+  removeLabel(number: number, label: string): Promise<void>;
 }
 
 export class IssueTrackerError extends Error {}
@@ -54,14 +59,17 @@ export function ghTracker(repo: string, exec: ExecFile = execFile): IssueTracker
       );
     return r.stdout;
   };
+  const ensureLabels = async (toEnsure: string[]) => {
+    for (const label of toEnsure)
+      if (!labels.has(label)) {
+        await gh(["label", "create", label, "-R", repo, "--force"]);
+        labels.add(label);
+      }
+  };
   return {
     repo,
     async create(input) {
-      for (const label of input.labels)
-        if (!labels.has(label)) {
-          await gh(["label", "create", label, "-R", repo, "--force"]);
-          labels.add(label);
-        }
+      await ensureLabels(input.labels);
       const out = await gh(
         [
           "issue",
@@ -84,18 +92,153 @@ export function ghTracker(repo: string, exec: ExecFile = execFile): IssueTracker
         );
       return { number: Number(m[1]), url };
     },
+    async list(label) {
+      const out = await gh([
+        "issue",
+        "list",
+        "-R",
+        repo,
+        "--label",
+        label,
+        "--state",
+        "open",
+        "--json",
+        "number,labels",
+        "--limit",
+        "100",
+      ]);
+      const parsed = JSON.parse(out || "[]") as { number: number; labels?: { name: string }[] }[];
+      return parsed.map((item) => ({
+        number: item.number,
+        labels: (item.labels ?? []).map((l: any) => (typeof l === "string" ? l : l.name ?? "")),
+      }));
+    },
+    async view(number) {
+      const out = await gh([
+        "issue",
+        "view",
+        String(number),
+        "-R",
+        repo,
+        "--json",
+        "title,body,labels",
+      ]);
+      const parsed = JSON.parse(out || "{}");
+      return {
+        title: parsed.title ?? "",
+        body: parsed.body ?? "",
+        labels: (parsed.labels ?? []).map((l: any) => (typeof l === "string" ? l : l.name ?? "")),
+      };
+    },
+    async comment(number, body) {
+      const out = await gh(
+        ["issue", "comment", String(number), "-R", repo, "--body-file", "-"],
+        body,
+      );
+      return out.trim().split("\n").at(-1) ?? "";
+    },
+    async addLabels(number, labelsToAdd) {
+      if (!labelsToAdd.length) return;
+      await ensureLabels(labelsToAdd);
+      await gh([
+        "issue",
+        "edit",
+        String(number),
+        "-R",
+        repo,
+        "--add-label",
+        labelsToAdd.join(","),
+      ]);
+    },
+    async removeLabel(number, label) {
+      await gh([
+        "issue",
+        "edit",
+        String(number),
+        "-R",
+        repo,
+        "--remove-label",
+        label,
+      ]);
+    },
   };
 }
 
 /** A tracker that only counts: tests and fixture mode never reach GitHub. */
-export function fauxTracker(repo: string): IssueTracker & { created: IssueInput[] } {
+export function fauxTracker(repo: string): IssueTracker & {
+  created: IssueInput[];
+  issues: Map<
+    number,
+    { number: number; title: string; body: string; labels: string[]; comments: string[] }
+  >;
+} {
   const created: IssueInput[] = [];
+  const issues = new Map<
+    number,
+    { number: number; title: string; body: string; labels: string[]; comments: string[] }
+  >();
+  const getOrCreate = (number: number) => {
+    let issue = issues.get(number);
+    if (!issue) {
+      issue = {
+        number,
+        title: `Issue #${number}`,
+        body: "",
+        labels: [],
+        comments: [],
+      };
+      issues.set(number, issue);
+    }
+    return issue;
+  };
   return {
     repo,
     created,
+    issues,
     async create(input) {
       created.push(input);
-      return { number: created.length, url: `https://github.com/${repo}/issues/${created.length}` };
+      const number = created.length;
+      issues.set(number, {
+        number,
+        title: input.title,
+        body: input.body,
+        labels: [...input.labels],
+        comments: [],
+      });
+      return { number, url: `https://github.com/${repo}/issues/${number}` };
+    },
+    async list(label) {
+      const out: { number: number; labels: string[] }[] = [];
+      for (const issue of issues.values()) {
+        if (issue.labels.includes(label)) {
+          out.push({ number: issue.number, labels: [...issue.labels] });
+        }
+      }
+      return out;
+    },
+    async view(number) {
+      const issue = issues.get(number);
+      if (!issue) throw new IssueTrackerError(`Issue #${number} not found in fauxTracker`);
+      return {
+        title: issue.title,
+        body: issue.body,
+        labels: [...issue.labels],
+      };
+    },
+    async comment(number, body) {
+      const issue = getOrCreate(number);
+      issue.comments.push(body);
+      return `https://github.com/${repo}/issues/${number}#issuecomment-${issue.comments.length}`;
+    },
+    async addLabels(number, labelsToAdd) {
+      const issue = getOrCreate(number);
+      for (const l of labelsToAdd) {
+        if (!issue.labels.includes(l)) issue.labels.push(l);
+      }
+    },
+    async removeLabel(number, label) {
+      const issue = getOrCreate(number);
+      issue.labels = issue.labels.filter((l) => l !== label);
     },
   };
 }
