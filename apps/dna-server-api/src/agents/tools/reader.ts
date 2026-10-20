@@ -144,7 +144,12 @@ export function editKeyword(deps: Deps) {
       const group = groupName && groupName !== "none" ? taste.findGroup(groupName) : undefined;
       if (groupName && groupName !== "none" && !group)
         return toolError(`No topic group "${groupName}".`, [
-          `The reader's groups: ${taste.groups().map((g) => g.name).join(", ") || "none yet"}.`,
+          `The reader's groups: ${
+            taste
+              .groups()
+              .map((g) => g.name)
+              .join(", ") || "none yet"
+          }.`,
         ]);
       if (args.action === "set_group" && !groupName)
         return toolError("edit_keyword set_group needs group (a group name, or none).");
@@ -192,9 +197,12 @@ export function editKeyword(deps: Deps) {
       const text = await once(api, "edit_keyword", ctx, async () => {
         let line: string;
         if (args.action === "set_group") {
-          if (k.kind !== "topic") return `Only topics take a group; ${keywordLine(k)} is ${k.kind}.`;
+          if (k.kind !== "topic")
+            return `Only topics take a group; ${keywordLine(k)} is ${k.kind}.`;
           const after = taste.setKeywordGroup(k.id, group ? group.id : null)!;
-          line = group ? `Grouped ${keywordLine(after, taste)}.` : `Ungrouped ${keywordLine(after)}.`;
+          line = group
+            ? `Grouped ${keywordLine(after, taste)}.`
+            : `Ungrouped ${keywordLine(after)}.`;
         } else if (args.action === "remove") {
           taste.removeKeyword(k.id);
           line = `Removed ${keywordLine(k)}.`;

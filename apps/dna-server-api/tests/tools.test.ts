@@ -499,7 +499,9 @@ test("edit_keyword puts topics in groups; keyword lines show group and effective
     assert.equal(set.isError, false, set.text);
     assert.match(set.text, /group agent-security \(x1\.50 = 3\.00\)/);
     assert.equal(app.store.taste.keyword(topic.id)!.groupId, group.id);
-    assert.ok(frames.some((f) => f.type === "taste.keywords" && f.groups.some((g) => g.id === group.id)));
+    assert.ok(
+      frames.some((f) => f.type === "taste.keywords" && f.groups.some((g) => g.id === group.id)),
+    );
     const unknown = await callTool(app.main, "edit_keyword", {
       action: "set_group",
       keyword_id: topic.id,
@@ -513,7 +515,10 @@ test("edit_keyword puts topics in groups; keyword lines show group and effective
       term: "agent sandboxing",
       group: "agent-security",
     });
-    assert.match(added.text, /Added #\d+ topic "agent sandboxing" weight 1\.00 group agent-security/);
+    assert.match(
+      added.text,
+      /Added #\d+ topic "agent sandboxing" weight 1\.00 group agent-security/,
+    );
     const taste = await callTool(app.main, "read_taste", {});
     assert.match(taste.text, /prompt injection 2 \(agent-security x1\.5 = 3\)/);
     const cleared = await callTool(app.main, "edit_keyword", {

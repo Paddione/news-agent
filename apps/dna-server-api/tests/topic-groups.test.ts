@@ -99,7 +99,8 @@ function seedCard(store: any, title: string, matchedTopic?: string) {
 
 /** Only the given topics stay enabled, so draws are deterministic. */
 function onlyTopics(store: any, terms: [string, number][]) {
-  for (const k of store.taste.keywords("topic")) store.taste.updateKeyword(k.id, { enabled: false });
+  for (const k of store.taste.keywords("topic"))
+    store.taste.updateKeyword(k.id, { enabled: false });
   return terms.map(([term, weight]) => store.taste.addKeyword("topic", term, weight));
 }
 

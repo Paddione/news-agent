@@ -19,7 +19,9 @@ export function weightsOf(
   store: Store,
   item: Pick<Item, "sourceId" | "url" | "matchedTopic">,
 ): { topic: number; source: number } {
-  const keyword = item.matchedTopic ? store.taste.findKeyword("topic", item.matchedTopic) : undefined;
+  const keyword = item.matchedTopic
+    ? store.taste.findKeyword("topic", item.matchedTopic)
+    : undefined;
   const topic = keyword ? store.taste.effectiveWeight(keyword) : 1;
   return { topic, source: sourceFor(store, item)?.weight ?? 1 };
 }

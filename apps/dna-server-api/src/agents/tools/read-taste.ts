@@ -18,7 +18,9 @@ export function readTaste(deps: Deps) {
       const groups = new Map(taste.groups().map((g) => [g.id, g]));
       const weightOf = (k: Keyword) => {
         const g = k.groupId ? groups.get(k.groupId) : undefined;
-        return g ? `${k.weight} (${g.name} x${g.weight} = ${taste.effectiveWeight(k)})` : `${k.weight}`;
+        return g
+          ? `${k.weight} (${g.name} x${g.weight} = ${taste.effectiveWeight(k)})`
+          : `${k.weight}`;
       };
       const group = (kind: "topic" | "hype" | "facts" | "signal") =>
         `${kind}: ${
