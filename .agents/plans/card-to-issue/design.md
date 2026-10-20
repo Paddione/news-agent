@@ -41,7 +41,7 @@ Status columns for S3/S4 are added by their specs.
 |---|---|---|
 | `DNA_ISSUE_REPO` | `Paddione/dotfiles` | owner/name of the inbox repo |
 | `DNA_ISSUE_LABEL` | `news-card` | label on every card issue |
-| `DNA_ISSUE_TRACKER` | `gh` | `gh` or `faux` (tests, faux mode) |
+| `DNA_ISSUE_TRACKER` | `gh`, but `faux` when `DNA_SEARCH_MODE=fixture` | `gh` or `faux`; the fixture default keeps test servers from creating real issues |
 
 ## Issue tracker
 
