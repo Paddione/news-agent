@@ -998,6 +998,8 @@ export class NewsRepo {
       .prepare(
         `SELECT c.*, i.url AS item_url, i.title AS item_title, i.source_name, i.published_at, i.discussion_url,
                 i.matched_topic,
+                (SELECT g.name FROM keywords k JOIN topic_groups g ON g.id = k.group_id
+                 WHERE k.kind = 'topic' AND lower(k.term) = lower(i.matched_topic) LIMIT 1) AS group_name,
                 s.title AS story_title,
                 im.id AS im_id, im.origin AS im_origin, im.status AS im_status, im.url AS im_url
          FROM cards c
@@ -1055,6 +1057,7 @@ export class NewsRepo {
       discussionUrl: str(r.discussion_url),
       publishedAt: str(r.published_at),
       topic: str(r.matched_topic),
+      group: str(r.group_name),
       timeline: r.item_id ? this.timelineOf(r.item_id) : undefined,
       hfs,
       attention: num(r.attention),
@@ -1072,7 +1075,8 @@ export class NewsRepo {
 
   /**
    * News cards that match, newest published first: by search every word appears in the card or its item; by keyword
-   * the item's topic is the keyword or the text mentions it; by url the link contains it (an article or a site).
+   * the item's topic is the keyword or the text mentions it; by group the item's topic is in the group; by url the link
+   * contains it (an article or a site).
    */
   searchCards(by: TabBy, value: string, limit = 50): Card[] {
     const text = `lower(c.props_json || ' ' || COALESCE(i.title, '') || ' ' || COALESCE(i.excerpt, '') || ' ' ||
@@ -1088,6 +1092,10 @@ export class NewsRepo {
         JOIN story_memberships mm ON mm.story_id = cm.story_id JOIN items mi ON mi.id = mm.item_id
         WHERE cm.item_id = i.id AND instr(lower(mi.url), :v) > 0))`);
       params.v = urlKey(term);
+    } else if (by === "group") {
+      where.push(`EXISTS (SELECT 1 FROM keywords gk JOIN topic_groups g ON g.id = gk.group_id
+        WHERE gk.kind = 'topic' AND lower(gk.term) = lower(i.matched_topic) AND g.name = :v)`);
+      params.v = value.trim();
     } else if (by === "keyword") {
       where.push(`(lower(i.matched_topic) = :v OR instr(${text}, :v) > 0)`);
       params.v = term;

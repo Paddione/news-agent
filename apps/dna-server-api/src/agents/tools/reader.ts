@@ -5,12 +5,20 @@ import { Type } from "@earendil-works/pi-ai";
 import { defineAppTool, once, toolError, toolText } from "@dna/durable-agent";
 import { HFS_CATEGORIES, TAB_BYS, type Card, type Keyword, type Source } from "@dna/sdk";
 import type { Deps } from "../../deps.ts";
-import { clamp } from "../../db/repos/taste.ts";
+import { clamp, type TasteRepo } from "../../db/repos/taste.ts";
 import { MAX_CARDS } from "../../news/schedule.ts";
-import { applyFeedback } from "../../news/taste.ts";
+import { applyFeedback, tasteFrame } from "../../news/taste.ts";
 
 const VOTES = ["up", "down"] as const;
-const ACTIONS = ["add", "remove", "enable", "disable", "rank_up", "rank_down"] as const;
+const ACTIONS = [
+  "add",
+  "remove",
+  "enable",
+  "disable",
+  "rank_up",
+  "rank_down",
+  "set_group",
+] as const;
 const KINDS = ["topic", "hype", "facts", "signal"] as const;
 const SOURCE_ACTIONS = ["rank_up", "rank_down"] as const;
 /** One rank step: 10 points of weight. */
@@ -20,8 +28,13 @@ const literals = <T extends string>(values: readonly T[]) =>
   Type.Union(values.map((v) => Type.Literal(v)));
 const cardLine = (c: Card) =>
   `card ${c.id} "${c.title}"${c.publishedAt ? ` (published ${c.publishedAt.slice(0, 10)})` : ""}`;
-const keywordLine = (k: Keyword) =>
-  `#${k.id} ${k.kind} "${k.term}" weight ${k.weight.toFixed(2)}${k.enabled ? "" : " (off)"}`;
+const keywordLine = (k: Keyword, taste?: TasteRepo) => {
+  const group = k.groupId ? taste?.group(k.groupId) : undefined;
+  const grouped = group
+    ? ` group ${group.name} (x${group.weight.toFixed(2)} = ${taste!.effectiveWeight(k).toFixed(2)})`
+    : "";
+  return `#${k.id} ${k.kind} "${k.term}" weight ${k.weight.toFixed(2)}${grouped}${k.enabled ? "" : " (off)"}`;
+};
 
 export const sourceLine = (s: Source) =>
   `#${s.id} ${s.kind} "${s.name}" weight ${s.weight.toFixed(2)}${s.enabled ? "" : " (off)"}`;
@@ -49,7 +62,7 @@ function noCard(args: { card_id?: number; item_id?: number }) {
 }
 
 function publishKeywords(deps: Deps) {
-  deps.bus.publish({ type: "taste.keywords", keywords: deps.store.taste.keywords() });
+  deps.bus.publish(tasteFrame(deps.store));
 }
 
 export function cardFeedback(deps: Deps) {
@@ -113,12 +126,13 @@ export function editKeyword(deps: Deps) {
     returns:
       "Text: the keyword after the change (id, section, term, weight, off when disabled), or the one removed.",
     description:
-      "Change the reader's keywords like the Taste settings do. add puts a term in a section (topic steers what sweeps search; hype, facts and signal steer jev). remove deletes one, enable and disable turn one on or off, rank_up (boost, raise) and rank_down (lower) move its weight by 0.10 (weights stay between 0.10 and 2.00). Name the keyword by keyword_id from read_taste, or by term (with kind when two sections share it). Use it only when the reader asks.",
+      "Change the reader's keywords like the Taste settings do. add puts a term in a section (topic steers what sweeps search; hype, facts and signal steer jev). remove deletes one, enable and disable turn one on or off, rank_up (boost, raise) and rank_down (lower) move its weight by 0.10 (weights stay between 0.10 and 2.00). set_group puts a topic in one of the reader's topic groups (group: its name, or none to take it out); add takes a group too. A topic's effective weight is its weight times its group's; group weights are the reader's to set. Name the keyword by keyword_id from read_taste, or by term (with kind when two sections share it). Use it only when the reader asks.",
     parameters: Type.Object({
       action: literals(ACTIONS),
       term: Type.Optional(Type.String({ minLength: 1, maxLength: 80 })),
       kind: Type.Optional(literals(KINDS)),
       keyword_id: Type.Optional(Type.Integer()),
+      group: Type.Optional(Type.String({ minLength: 1, maxLength: 40 })),
     }),
     enums: { action: ACTIONS, kind: KINDS },
     example: { action: "rank_down", term: "agent sdk" },
@@ -126,15 +140,31 @@ export function editKeyword(deps: Deps) {
     execute: async (args, api, ctx) => {
       const { taste } = deps.store;
       const term = args.term?.trim();
+      const groupName = args.group?.trim();
+      const group = groupName && groupName !== "none" ? taste.findGroup(groupName) : undefined;
+      if (groupName && groupName !== "none" && !group)
+        return toolError(`No topic group "${groupName}".`, [
+          `The reader's groups: ${
+            taste
+              .groups()
+              .map((g) => g.name)
+              .join(", ") || "none yet"
+          }.`,
+        ]);
+      if (args.action === "set_group" && !groupName)
+        return toolError("edit_keyword set_group needs group (a group name, or none).");
       if (args.action === "add") {
         if (!term) return toolError("edit_keyword add needs a term.");
         const kind = args.kind ?? "topic";
+        if (group && kind !== "topic") return toolError("Only topics take a group.");
         const known = taste.findKeyword(kind, term);
-        if (known?.enabled) return toolText(`Already a keyword: ${keywordLine(known)}.`);
+        if (known?.enabled && !group)
+          return toolText(`Already a keyword: ${keywordLine(known, taste)}.`);
         const added = taste.addKeyword(kind, term);
+        const after = group ? taste.setKeywordGroup(added.id, group.id)! : added;
         deps.log.info("taste.keyword_added", { id: added.id, kind, term, by: "agent" });
         publishKeywords(deps);
-        return toolText(`Added ${keywordLine(added)}.`);
+        return toolText(`Added ${keywordLine(after, taste)}.`);
       }
       const matches = (
         args.keyword_id
@@ -166,12 +196,19 @@ export function editKeyword(deps: Deps) {
       const k = matches[0];
       const text = await once(api, "edit_keyword", ctx, async () => {
         let line: string;
-        if (args.action === "remove") {
+        if (args.action === "set_group") {
+          if (k.kind !== "topic")
+            return `Only topics take a group; ${keywordLine(k)} is ${k.kind}.`;
+          const after = taste.setKeywordGroup(k.id, group ? group.id : null)!;
+          line = group
+            ? `Grouped ${keywordLine(after, taste)}.`
+            : `Ungrouped ${keywordLine(after)}.`;
+        } else if (args.action === "remove") {
           taste.removeKeyword(k.id);
           line = `Removed ${keywordLine(k)}.`;
         } else if (args.action === "enable" || args.action === "disable") {
           const after = taste.updateKeyword(k.id, { enabled: args.action === "enable" })!;
-          line = `${args.action === "enable" ? "Enabled" : "Disabled"} ${keywordLine(after)}.`;
+          line = `${args.action === "enable" ? "Enabled" : "Disabled"} ${keywordLine(after, taste)}.`;
         } else {
           const after = taste.nudge(k.id, args.action === "rank_up" ? RANK_STEP : -RANK_STEP)!;
           line =
@@ -244,7 +281,7 @@ export function openTab(deps: Deps) {
     returns:
       "Text: how many news cards matched and the newest of them (card id, title, publish date). The tab opens even when nothing matches.",
     description:
-      "Open a tab in the reader's news column with the same search their search box runs. by search matches every word in a card's text, by keyword a topic keyword (the card's topic or a mention), by url an article link or a site (example.com). Use it when the reader asks to see, find or filter news, then answer briefly.",
+      "Open a tab in the reader's news column with the same search their search box runs. by search matches every word in a card's text, by keyword a topic keyword (the card's topic or a mention), by url an article link or a site (example.com), by group a topic group's name (cards whose topic is in it). Use it when the reader asks to see, find or filter news, then answer briefly.",
     parameters: Type.Object({
       by: literals(TAB_BYS),
       value: Type.String({ minLength: 1, maxLength: 200 }),

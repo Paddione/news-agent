@@ -1,10 +1,17 @@
 <script setup lang="ts">
 // Every card, one fixed height: the image (3:2, links to the source; a skeleton while it generates), then source,
-// time, the timeline chip and links, the generative body (clamped), H/F/S and feedback.
+// time, the timeline and group chips and links, the generative body (clamped), H/F/S and feedback.
 import { computed, ref } from "vue";
-import { ExternalLink, GitCommitVertical, ImageOff, Info, MessageSquareQuote } from "@lucide/vue";
+import {
+  ExternalLink,
+  GitCommitVertical,
+  ImageOff,
+  Info,
+  Layers,
+  MessageSquareQuote,
+} from "@lucide/vue";
 import { ago, type Card } from "@dna/sdk";
-import { openTimeline } from "../../client/layout";
+import { openTab, openTimeline } from "../../client/layout";
 import { clean } from "../../client/text";
 import { now, referenceInChat, ui } from "../../client/store";
 import FeedbackBar from "../FeedbackBar.vue";
@@ -76,6 +83,15 @@ const image = computed(() =>
         >
           <GitCommitVertical :size="13" /><span>Timeline</span
           ><strong>{{ card.timeline.index }}/{{ card.timeline.count }}</strong>
+        </button>
+        <button
+          v-if="card.group"
+          class="timeline-chip group-chip"
+          :aria-label="`Open the ${card.group} group`"
+          :title="`Topic: ${clean(card.topic ?? '')}`"
+          @click="openTab({ kind: 'group', value: card.group })"
+        >
+          <Layers :size="13" /><span>{{ card.group }}</span>
         </button>
         <button
           v-if="(card.sources?.length ?? 0) > 1"

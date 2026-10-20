@@ -144,7 +144,7 @@ export class Judge {
     item: Item,
     ref: JudgeRef = {},
   ): Promise<{ relevance: number; matchedTopic?: string }> {
-    const topics = this.deps.store.taste.keywords("topic", true);
+    const topics = this.deps.store.taste.activeTopics();
     const choices = topicChoices(topics);
     const result = await this.run(
       "relevance",
@@ -152,7 +152,10 @@ export class Judge {
         title: item.title,
         source: item.sourceName ?? "",
         excerpt: excerptOf(item, this.deps.store, 1200),
-        topic_keywords: topics.map((k) => ({ term: k.term, weight: k.weight })),
+        topic_keywords: topics.map((k) => ({
+          term: k.term,
+          weight: this.deps.store.taste.effectiveWeight(k),
+        })),
         topic_choices: choices,
         taste_examples: tasteExamples(this.deps.store),
       },
@@ -169,7 +172,7 @@ export class Judge {
     weights: { topic: number; source: number },
     ref: JudgeRef = {},
   ): Promise<number> {
-    const topics = this.deps.store.taste.keywords("topic", true);
+    const topics = this.deps.store.taste.activeTopics();
     const result = await this.run(
       "importance",
       {
@@ -180,7 +183,10 @@ export class Judge {
         excerpt: excerptOf(item, this.deps.store, 1200),
         topic: item.matchedTopic ?? "none",
         topic_weight: weights.topic,
-        topic_keywords: topics.map((k) => ({ term: k.term, weight: k.weight })),
+        topic_keywords: topics.map((k) => ({
+          term: k.term,
+          weight: this.deps.store.taste.effectiveWeight(k),
+        })),
         taste_examples: tasteExamples(this.deps.store),
       },
       { ...ref, itemId: item.id },

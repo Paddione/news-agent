@@ -10,8 +10,11 @@ import {
   type SourceKind,
   type TasteState,
   type ToolInfo,
+  type TopicGroup,
 } from "@dna/sdk";
 import JsonView from "./JsonView.vue";
+import KeywordRow from "./KeywordRow.vue";
+import TopicGroupsSection from "./TopicGroupsSection.vue";
 import LoadingRows from "./LoadingRows.vue";
 import { api, attempt, info, onFrame, refreshInfo, ui } from "../client/store";
 import { clean } from "../client/text";
@@ -33,18 +36,21 @@ async function openTools() {
   tools.value ??= await attempt(() => api.tools());
 }
 const keywords = ref<Keyword[]>([]);
+const groups = ref<TopicGroup[]>([]);
 const sources = ref<Source[]>([]);
 const taste = ref<TasteState>();
 const drafts = ref<Record<string, string>>({});
 const source = ref({ kind: "rss" as SourceKind, name: "", url: "" });
 
 async function load() {
-  const [kw, src, t] = await Promise.all([
+  const [kw, src, t, g] = await Promise.all([
     attempt(() => api.keywords()),
     attempt(() => api.sources()),
     attempt(() => api.taste()),
+    attempt(() => api.topicGroups()),
   ]);
   keywords.value = kw ?? [];
+  groups.value = g ?? [];
   sources.value = src ?? [];
   taste.value = t;
   void refreshInfo();
@@ -56,10 +62,12 @@ const onEscape = (e: KeyboardEvent) => {
 };
 onMounted(() => addEventListener("keydown", onEscape));
 onBeforeUnmount(() => removeEventListener("keydown", onEscape));
-// The agent's keyword edits show up live.
+// The agent's keyword and group edits show up live.
 onBeforeUnmount(
   onFrame((frame) => {
-    if (frame.type === "taste.keywords") keywords.value = frame.keywords;
+    if (frame.type !== "taste.keywords") return;
+    keywords.value = frame.keywords;
+    groups.value = frame.groups;
   }),
 );
 const byKind = computed(
@@ -77,7 +85,10 @@ async function addKeyword(kind: (typeof KINDS)[number]) {
     await load();
   }
 }
-async function updateKeyword(k: Keyword, patch: { weight?: number; enabled?: boolean }) {
+async function updateKeyword(
+  k: Keyword,
+  patch: { weight?: number; enabled?: boolean; groupId?: number | null },
+) {
   if (await attempt(() => api.updateKeyword(k.id, patch))) await load();
 }
 async function removeKeyword(k: Keyword) {
@@ -202,42 +213,21 @@ async function removeSource(s: Source) {
               kind === "topic" ? "Topics" : kind[0].toUpperCase() + kind.slice(1)
             }}
           </h3>
-          <div
-            v-for="k in byKind[kind]"
-            :key="k.id"
-            class="kw-row"
-            :class="{ off: !k.enabled }"
-            :data-keyword="k.term"
-          >
-            <span class="kw-term">{{ k.term }}</span>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.05"
-              :value="k.weight"
-              :aria-label="`Weight of ${k.term}`"
-              @change="
-                updateKeyword(k, { weight: Number(($event.target as HTMLInputElement).value) })
-              "
+          <TopicGroupsSection
+            v-if="kind === 'topic'"
+            :topics="byKind.topic"
+            :groups="groups"
+            @changed="load"
+          />
+          <template v-else>
+            <KeywordRow
+              v-for="k in byKind[kind]"
+              :key="k.id"
+              :k="k"
+              @update="(patch) => updateKeyword(k, patch)"
+              @remove="removeKeyword(k)"
             />
-            <span class="mono kw-weight">{{ k.weight.toFixed(2) }}</span>
-            <button
-              class="icon-button small"
-              :aria-label="`${k.enabled ? 'Turn off' : 'Turn on'} ${k.term}`"
-              :aria-pressed="k.enabled"
-              @click="updateKeyword(k, { enabled: !k.enabled })"
-            >
-              <Power :size="13" />
-            </button>
-            <button
-              class="icon-button small"
-              :aria-label="`Remove ${k.term}`"
-              @click="removeKeyword(k)"
-            >
-              <Trash2 :size="13" />
-            </button>
-          </div>
+          </template>
           <form class="kw-add" @submit.prevent="addKeyword(kind)">
             <input
               v-model="drafts[kind]"

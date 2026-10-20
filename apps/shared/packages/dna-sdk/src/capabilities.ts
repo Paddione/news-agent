@@ -50,8 +50,17 @@ export const CAPABILITIES = {
   },
   "agent.compact": { summary: "Compact the context now", routes: ["agent.compact"] },
   keywords: {
-    summary: "List, add, weight, toggle and remove keywords",
-    routes: ["keywords.list", "keywords.add", "keywords.update", "keywords.remove"],
+    summary: "List, add, weight, toggle and remove keywords and topic groups",
+    routes: [
+      "keywords.list",
+      "keywords.add",
+      "keywords.update",
+      "keywords.remove",
+      "groups.list",
+      "groups.add",
+      "groups.update",
+      "groups.remove",
+    ],
   },
   sources: {
     summary: "List, add, toggle and remove sources",

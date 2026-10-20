@@ -133,6 +133,30 @@ export const ROUTES = {
     scope: "settings",
     summary: "Remove a keyword",
   },
+  "groups.list": {
+    method: "GET",
+    path: "/v1/topic-groups",
+    scope: "read",
+    summary: "Topic groups with their weights",
+  },
+  "groups.add": {
+    method: "POST",
+    path: "/v1/topic-groups",
+    scope: "settings",
+    summary: "Add a topic group",
+  },
+  "groups.update": {
+    method: "PATCH",
+    path: "/v1/topic-groups/:id",
+    scope: "settings",
+    summary: "Change a topic group's name, weight or enabled",
+  },
+  "groups.remove": {
+    method: "DELETE",
+    path: "/v1/topic-groups/:id",
+    scope: "settings",
+    summary: "Remove a topic group; its topics stay without a group",
+  },
   "sources.list": {
     method: "GET",
     path: "/v1/sources",

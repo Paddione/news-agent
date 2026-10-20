@@ -1,8 +1,11 @@
-// Keywords per section, feedback on cards, and the taste questions the agent asks.
-import type { HfsCategory, Keyword, TasteQuestion } from "@dna/sdk";
+// Keywords per section, topic groups, feedback on cards, and the taste questions the agent asks.
+import type { HfsCategory, Keyword, TasteQuestion, TopicGroup } from "@dna/sdk";
 import { bind, bool, type Db, nowIso, num, parse, str } from "../db.ts";
 
 export type KeywordKind = Keyword["kind"];
+
+/** Group names are kebab-case, like agent-harnesses. */
+export const GROUP_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const toKeyword = (r: any): Keyword => ({
   id: r.id,
@@ -12,7 +15,19 @@ const toKeyword = (r: any): Keyword => ({
   source: r.source,
   enabled: bool(r.enabled),
   lastSearchedAt: str(r.last_searched_at),
+  groupId: num(r.group_id),
 });
+
+const toGroup = (r: any): TopicGroup => ({
+  id: r.id,
+  name: r.name,
+  weight: r.weight,
+  enabled: bool(r.enabled),
+  topicCount: r.topic_count ?? 0,
+});
+
+const GROUP_SQL = `SELECT g.*, (SELECT count(*) FROM keywords k WHERE k.group_id = g.id) AS topic_count
+  FROM topic_groups g`;
 
 const toQuestion = (r: any): TasteQuestion => ({
   id: r.id,
@@ -105,6 +120,98 @@ export class TasteRepo {
     const k = this.keyword(id);
     if (!k) return undefined;
     return this.updateKeyword(id, { weight: Math.round((k.weight + delta) * 100) / 100 });
+  }
+
+  // Topic groups
+
+  groups(): TopicGroup[] {
+    return (this.db.prepare(`${GROUP_SQL} ORDER BY g.weight DESC, g.name`).all() as any[]).map(
+      toGroup,
+    );
+  }
+
+  group(id: number): TopicGroup | undefined {
+    const r = this.db.prepare(`${GROUP_SQL} WHERE g.id = ?`).get(id);
+    return r ? toGroup(r) : undefined;
+  }
+
+  findGroup(name: string): TopicGroup | undefined {
+    const r = this.db.prepare(`${GROUP_SQL} WHERE g.name = ?`).get(name.trim());
+    return r ? toGroup(r) : undefined;
+  }
+
+  addGroup(name: string, weight = 1, enabled = true): TopicGroup {
+    const n = groupName(name);
+    if (this.findGroup(n)) throw new Error(`A group "${n}" already exists`);
+    const now = nowIso();
+    const r = this.db
+      .prepare(
+        "INSERT INTO topic_groups (name, weight, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run(n, clamp(weight), enabled ? 1 : 0, now, now);
+    return this.group(Number(r.lastInsertRowid))!;
+  }
+
+  updateGroup(
+    id: number,
+    patch: { name?: string; weight?: number; enabled?: boolean },
+  ): TopicGroup | undefined {
+    const g = this.group(id);
+    if (!g) return undefined;
+    const name = patch.name === undefined ? g.name : groupName(patch.name);
+    const other = this.findGroup(name);
+    if (other && other.id !== id) throw new Error(`A group "${name}" already exists`);
+    this.db
+      .prepare(
+        "UPDATE topic_groups SET name = :name, weight = :weight, enabled = :enabled, updated_at = :now WHERE id = :id",
+      )
+      .run(
+        bind({
+          id,
+          name,
+          weight: clamp(patch.weight ?? g.weight),
+          enabled: patch.enabled ?? g.enabled,
+          now: nowIso(),
+        }),
+      );
+    return this.group(id);
+  }
+
+  /** Remove a group; its topics stay, without a group. */
+  removeGroup(id: number): boolean {
+    this.db.prepare("UPDATE keywords SET group_id = NULL WHERE group_id = ?").run(id);
+    return Number(this.db.prepare("DELETE FROM topic_groups WHERE id = ?").run(id).changes) > 0;
+  }
+
+  /** Put a topic in a group, or take it out with null. Hype, facts and signal keywords have no group. */
+  setKeywordGroup(keywordId: number, groupId: number | null): Keyword | undefined {
+    const k = this.keyword(keywordId);
+    if (!k) return undefined;
+    if (groupId !== null && k.kind !== "topic")
+      throw new Error(`Only topics take a group, not ${k.kind} keywords`);
+    this.db
+      .prepare("UPDATE keywords SET group_id = ?, updated_at = ? WHERE id = ?")
+      .run(groupId, nowIso(), keywordId);
+    return this.keyword(keywordId);
+  }
+
+  /** A topic's weight times its group's (1 without a group). */
+  effectiveWeight(k: Keyword): number {
+    const g = k.groupId ? this.group(k.groupId) : undefined;
+    return Math.round(k.weight * (g?.weight ?? 1) * 100) / 100;
+  }
+
+  /** Enabled topics outside disabled groups: the ones sweeps search and jev may match. */
+  activeTopics(): Keyword[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT k.* FROM keywords k LEFT JOIN topic_groups g ON g.id = k.group_id
+           WHERE k.kind = 'topic' AND k.enabled = 1 AND coalesce(g.enabled, 1) = 1
+           ORDER BY k.weight DESC, k.term`,
+        )
+        .all() as any[]
+    ).map(toKeyword);
   }
 
   markSearched(ids: number[]): void {
@@ -216,3 +323,10 @@ export class TasteRepo {
 }
 
 export const clamp = (weight: number) => Math.min(2, Math.max(0.1, weight));
+
+function groupName(name: string): string {
+  const n = name.trim();
+  if (!GROUP_NAME.test(n) || n.length > 40)
+    throw new Error(`Group names are kebab-case, 1 to 40 characters: "${n}"`);
+  return n;
+}

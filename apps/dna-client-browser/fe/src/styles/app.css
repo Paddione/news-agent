@@ -1376,6 +1376,34 @@ h4 {
   width: 36px;
   text-align: right;
 }
+.kw-group-section {
+  margin-bottom: 8px;
+}
+.kw-group-section.off .kw-row {
+  opacity: 0.5;
+}
+.kw-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.kw-group-head span:first-child {
+  flex: 1;
+}
+.kw-group-head input[type="range"] {
+  width: 110px;
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: var(--accent);
+}
+.kw-group {
+  max-width: 150px;
+  font-size: 12px;
+}
 .kw-add,
 .src-add {
   display: flex;

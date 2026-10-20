@@ -13,6 +13,7 @@ import { keywordRoutes } from "./routes/keywords.ts";
 import { logRoutes } from "./routes/logs.ts";
 import { sourceRoutes } from "./routes/sources.ts";
 import { tasteRoutes } from "./routes/taste.ts";
+import { topicGroupRoutes } from "./routes/topic-groups.ts";
 import type { Handlers } from "./routes/types.ts";
 import { scheduleRoutes } from "./routes/schedule.ts";
 import { statsRoutes } from "./routes/stats.ts";
@@ -30,6 +31,7 @@ export function createHttpApp(app: App) {
     ...feedRoutes(deps),
     ...tasteRoutes(deps),
     ...keywordRoutes(deps),
+    ...topicGroupRoutes(deps),
     ...sourceRoutes(deps),
     ...agentRoutes(deps),
     ...executionRoutes(deps),

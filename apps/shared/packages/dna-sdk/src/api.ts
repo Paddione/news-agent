@@ -81,6 +81,8 @@ export interface Card {
   publishedAt?: string;
   /** The topic keyword the item matched when it was gathered. */
   topic?: string;
+  /** The group of that topic, when it has one. */
+  group?: string;
   timeline?: TimelineRef;
   hfs?: HfsScores;
   attention?: number;
@@ -96,14 +98,17 @@ export interface Page<T> {
   cursor?: string;
 }
 
-/** How a feed tab finds its news: every word in the text, a topic keyword, or a link or site. */
-export const TAB_BYS = ["search", "keyword", "url"] as const;
+/** How a feed tab finds its news: every word in the text, a topic keyword, a link or site, or a topic group. */
+export const TAB_BYS = ["search", "keyword", "url", "group"] as const;
 export type TabBy = (typeof TAB_BYS)[number];
 
-/** Command-line search words: "keyword agents" and "url example.com" search by that, anything else by the words. */
+/**
+ * Command-line search words: "keyword agents", "url example.com" and "group agent-ops" search by that, anything else
+ * by the words.
+ */
 export function searchQuery(words: string[]): { by: TabBy; q: string } {
   const [first, ...rest] = words;
-  return (first === "keyword" || first === "url") && rest.length
+  return (first === "keyword" || first === "url" || first === "group") && rest.length
     ? { by: first, q: rest.join(" ") }
     : { by: "search", q: words.join(" ") };
 }
@@ -116,6 +121,17 @@ export interface Keyword {
   source: "seed" | "user";
   enabled: boolean;
   lastSearchedAt?: string;
+  /** Topics only: the group whose weight multiplies this topic's. */
+  groupId?: number;
+}
+
+/** A hand-set weight over several topics; a topic's effective weight is its own times its group's. */
+export interface TopicGroup {
+  id: number;
+  name: string;
+  weight: number;
+  enabled: boolean;
+  topicCount: number;
 }
 
 export type SourceKind = "rss" | "atom" | "hn_front" | "hn_search" | "github_releases" | "web_page";
@@ -507,7 +523,7 @@ export type Frame =
   /** The schedule changed (the top bar, the CLI or set_schedule). */
   | { type: "schedule"; schedule: ScheduleState }
   /** The agent changed keywords (edit_keyword, card_feedback): the new list. */
-  | { type: "taste.keywords"; keywords: Keyword[] }
+  | { type: "taste.keywords"; keywords: Keyword[]; groups: TopicGroup[] }
   | { type: "disconnected"; reason: string };
 
 export type WhenBusy = "followUp" | "steer";

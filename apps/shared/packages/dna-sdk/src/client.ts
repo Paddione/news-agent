@@ -12,6 +12,7 @@ import type {
   Frame,
   Info,
   Keyword,
+  TopicGroup,
   LogLine,
   LogQuery,
   Page,
@@ -297,14 +298,34 @@ export class DnaClient {
   compact(instructions?: string) {
     return this.call<{ taskId: number }>("agent.compact", { body: { instructions } });
   }
-  addKeyword(body: { kind: Keyword["kind"]; term: string; weight?: number }) {
+  addKeyword(body: {
+    kind: Keyword["kind"];
+    term: string;
+    weight?: number;
+    groupId?: number | null;
+  }) {
     return this.call<Keyword>("keywords.add", { body });
   }
-  updateKeyword(id: number, body: { weight?: number; enabled?: boolean; term?: string }) {
+  updateKeyword(
+    id: number,
+    body: { weight?: number; enabled?: boolean; term?: string; groupId?: number | null },
+  ) {
     return this.call<Keyword>("keywords.update", { params: { id }, body });
   }
   removeKeyword(id: number) {
     return this.call<{ ok: true }>("keywords.remove", { params: { id } });
+  }
+  topicGroups() {
+    return this.call<TopicGroup[]>("groups.list");
+  }
+  addTopicGroup(body: { name: string; weight?: number; enabled?: boolean }) {
+    return this.call<TopicGroup>("groups.add", { body });
+  }
+  updateTopicGroup(id: number, body: { name?: string; weight?: number; enabled?: boolean }) {
+    return this.call<TopicGroup>("groups.update", { params: { id }, body });
+  }
+  removeTopicGroup(id: number) {
+    return this.call<{ ok: true }>("groups.remove", { params: { id } });
   }
   addSource(body: {
     kind: SourceKind;
