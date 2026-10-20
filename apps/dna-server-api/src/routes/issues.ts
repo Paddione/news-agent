@@ -1,6 +1,7 @@
 // A card becomes a GitHub issue in the configured inbox repo, once. The repo never comes from the request.
 import { ApiFault, int, notFound } from "../errors.ts";
 import { IssueTrackerError, issueFor } from "../news/issues.ts";
+import { startInvestigation } from "../news/investigate.ts";
 import { bodyOf, str, type Handlers, type RouteDeps } from "./types.ts";
 
 export function issueRoutes({ app }: RouteDeps): Handlers<"cards.issue"> {
@@ -33,6 +34,9 @@ export function issueRoutes({ app }: RouteDeps): Handlers<"cards.issue"> {
         number: created.number,
         url: created.url,
         note: note?.trim() || undefined,
+      });
+      startInvestigation(app, issue.repo, issue.number, id).catch((err) => {
+        app.log.warn("investigate.start_failed", { error: err.message });
       });
       app.log.info("issue.created", { cardId: id, repo: issue.repo, number: issue.number });
       app.bus.publish({ type: "feed.card_updated", card: store.news.card(id)! });

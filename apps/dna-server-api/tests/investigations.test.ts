@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { tempStore, fauxApp, until } from "./helpers.ts";
 import { seedCard } from "./card-issues.test.ts";
-import { startInvestigation } from "../src/news/investigate.ts";
+import { startInvestigation, investigateCatchup } from "../src/news/investigate.ts";
 import { setFauxInvestigatorMode } from "../src/agents/faux-script.ts";
 import { openApp } from "../src/runtime.ts";
+import { workflowRoutes } from "../src/routes/workflows.ts";
 import {
   parseReport,
   renderReport,
@@ -454,6 +455,109 @@ test("investigation: restart mid-run ends with exactly one report comment", asyn
     } finally {
       await reopened.close();
     }
+  } finally {
+    await cleanup();
+  }
+});
+
+test("investigateCatchup: handles news-card labels, throttles, and triggers from workflow", async () => {
+  const { app, cleanup } = await fauxApp();
+  try {
+    const fauxTrack = app.issues as any;
+    // 1. plain issue (label "news-card")
+    const plain = await fauxTrack.create({
+      title: "Plain issue",
+      body: "Needs investigation",
+      labels: ["news-card"],
+    });
+
+    // 2. investigated issue (labels "news-card", "investigated")
+    const investigated = await fauxTrack.create({
+      title: "Already investigated",
+      body: "Done",
+      labels: ["news-card", "investigated"],
+    });
+
+    // 3. investigating issue (labels "news-card", "investigating")
+    const investigating = await fauxTrack.create({
+      title: "Currently investigating",
+      body: "In progress",
+      labels: ["news-card", "investigating"],
+    });
+
+    // 4. with a queued row (label "news-card", but already queued in DB)
+    const queuedIssue = await fauxTrack.create({
+      title: "Already queued",
+      body: "In queue",
+      labels: ["news-card"],
+    });
+    app.store.investigations.enqueue(app.issues.repo, queuedIssue.number);
+
+    // 5. failed row whose label was removed (label "news-card", row in DB is failed)
+    const failedIssue = await fauxTrack.create({
+      title: "Failed issue for retry",
+      body: "Failed earlier",
+      labels: ["news-card"], // no "investigation-failed" label
+    });
+    app.store.investigations.enqueue(app.issues.repo, failedIssue.number);
+    app.store.investigations.start(app.issues.repo, failedIssue.number, "local", "model-x");
+    app.store.investigations.fail(app.issues.repo, failedIssue.number, "err 1");
+    app.store.investigations.start(app.issues.repo, failedIssue.number, "local", "model-x");
+    app.store.investigations.fail(app.issues.repo, failedIssue.number, "err 2");
+    app.store.investigations.start(app.issues.repo, failedIssue.number, "local", "model-x");
+    app.store.investigations.fail(app.issues.repo, failedIssue.number, "fatal err 3");
+    assert.equal(app.store.investigations.get(app.issues.repo, failedIssue.number)?.status, "failed");
+
+    // Spy on app.issues.list
+    let listCalls = 0;
+    const origList = app.issues.list.bind(app.issues);
+    app.issues.list = async (label?: string) => {
+      listCalls++;
+      return origList(label);
+    };
+
+    const now = Date.now();
+    // First catchup call
+    const startedCount = await investigateCatchup(app, now);
+    assert.equal(startedCount, 2);
+    assert.equal(listCalls, 1);
+
+    // Verify which ones started:
+    const plainRow = app.store.investigations.get(app.issues.repo, plain.number);
+    assert.ok(plainRow);
+    assert.ok(["queued", "running", "done"].includes(plainRow.status));
+
+    const retriedRow = app.store.investigations.get(app.issues.repo, failedIssue.number);
+    assert.ok(retriedRow);
+    assert.ok(["queued", "running", "done"].includes(retriedRow.status));
+    assert.equal(retriedRow.attempts, 0);
+
+    // investigated and investigating should not have DB rows
+    assert.equal(app.store.investigations.get(app.issues.repo, investigated.number), undefined);
+    assert.equal(app.store.investigations.get(app.issues.repo, investigating.number), undefined);
+
+    // Second catchup call within 10 minutes returns 0 without calling list
+    const secondCount = await investigateCatchup(app, now + 5 * 60_000);
+    assert.equal(secondCount, 0);
+    assert.equal(listCalls, 1);
+
+    // Workflow call: workflow.newsSweep runs it
+    app.store.settings.set("investigateCatchupAt", 0);
+    const routes = workflowRoutes({ app });
+    let resStatus = 200;
+    let resBody: any;
+    const fakeReq: any = {
+      body: { trigger: "manual", requestId: "test-sweep-catchup", cards: 1 },
+    };
+    const fakeRes: any = {
+      status(c: number) { resStatus = c; return this; },
+      json(b: any) { resBody = b; return this; },
+      set() { return this; },
+    };
+    await routes["workflow.newsSweep"](fakeReq, fakeRes);
+    // News sweep must have called investigateCatchup, advancing listCalls to 2 and setting investigateCatchupAt
+    assert.equal(listCalls, 2);
+    assert.ok(app.store.settings.get("investigateCatchupAt") !== undefined);
   } finally {
     await cleanup();
   }
