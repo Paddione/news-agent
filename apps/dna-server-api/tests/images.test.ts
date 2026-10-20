@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { Images } from "../src/news/images.ts";
 import { fixtureHttp } from "../src/news/fixtures.ts";
 import { PROMPTS_DIR, tempStore } from "./helpers.ts";
+import { backfillRendered } from "../scripts/backfill-rendered-images.ts";
 
 test("a valid source og:image wins; otherwise OpenAI generates one and its cost is saved", async () => {
   const { store, dir, cleanup } = tempStore();
@@ -195,6 +196,39 @@ test("without a key a card image is rendered, not failed; with a key it is queue
       new Images({ ...base, openaiKey: "sk-test" }).fallback(item, { title: "D", summary: "s" }),
     )!;
     assert.equal(queued.status, "pending");
+  } finally {
+    cleanup();
+  }
+});
+
+test("backfill renders every failed generated image and leaves others alone", () => {
+  const { store, dir, cleanup } = tempStore();
+  try {
+    const { item } = store.news.upsertItem({
+      url: "https://openai.com/news/e",
+      title: "E",
+      sourceName: "openai.com",
+    });
+    const failed = store.news.addImage({
+      origin: "generated",
+      status: "failed",
+      itemId: item.id,
+      error: "OPENAI_API_KEY is not set",
+    });
+    const source = store.news.addImage({
+      origin: "source",
+      status: "ready",
+      url: "https://x.dev/a.png",
+      itemId: item.id,
+    });
+    assert.deepEqual(backfillRendered(store.db, dir, true), [failed]);
+    assert.equal(store.news.image(failed)!.status, "failed", "dry run writes nothing");
+    assert.deepEqual(backfillRendered(store.db, dir, false), [failed]);
+    const row = store.news.image(failed)!;
+    assert.equal(row.status, "ready");
+    assert.ok(existsSync(row.filePath!));
+    assert.equal(store.news.image(source)!.url, "https://x.dev/a.png");
+    assert.deepEqual(backfillRendered(store.db, dir, false), [], "idempotent");
   } finally {
     cleanup();
   }
