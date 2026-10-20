@@ -2036,3 +2036,50 @@ a.source:hover {
   gap: 12px;
   padding: 18px var(--s2);
 }
+
+/* Viz: shared chart parts */
+.viz {
+  display: block;
+  max-width: 100%;
+}
+.viz-label {
+  font-size: 12px;
+  fill: var(--muted);
+  color: var(--muted);
+}
+.viz-value {
+  font-size: 12px;
+  fill: var(--text);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.viz-heat-grid {
+  display: grid;
+  gap: 2px;
+  align-items: center;
+}
+.viz-heat-col {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.viz-heat-cell {
+  height: 18px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}
+.viz-funnel-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin: 3px 0;
+}
+.viz-funnel-bar {
+  height: 12px;
+  border-radius: 2px;
+  background: var(--accent);
+}
