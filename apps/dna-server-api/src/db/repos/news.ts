@@ -1,6 +1,7 @@
 // Items, jev classifications, researcher findings, stories, images and the cards the feed renders.
 import type {
   Card,
+  CardIssue,
   CardComponent,
   CardImage,
   HfsCategory,
@@ -625,6 +626,28 @@ export class NewsRepo {
     }));
   }
 
+  // Card issues
+
+  cardIssue(cardId: number): CardIssue | undefined {
+    const r = this.db.prepare("SELECT * FROM card_issues WHERE card_id = ?").get(cardId) as any;
+    return r
+      ? { repo: r.repo, number: r.number, url: r.url, note: str(r.note), createdAt: r.created_at }
+      : undefined;
+  }
+
+  /** Record the issue a card became; a card has at most one. */
+  addCardIssue(
+    cardId: number,
+    input: { repo: string; number: number; url: string; note?: string },
+  ): CardIssue {
+    this.db
+      .prepare(
+        "INSERT INTO card_issues (card_id, repo, number, url, note, created_at) VALUES (:card_id, :repo, :number, :url, :note, :now)",
+      )
+      .run(bind({ card_id: cardId, ...input, now: nowIso() }));
+    return this.cardIssue(cardId)!;
+  }
+
   // Images
 
   addImage(input: {
@@ -1000,12 +1023,14 @@ export class NewsRepo {
                 i.matched_topic,
                 (SELECT g.name FROM keywords k JOIN topic_groups g ON g.id = k.group_id
                  WHERE k.kind = 'topic' AND lower(k.term) = lower(i.matched_topic) LIMIT 1) AS group_name,
+                ci.number AS issue_number, ci.url AS issue_url,
                 s.title AS story_title,
                 im.id AS im_id, im.origin AS im_origin, im.status AS im_status, im.url AS im_url
          FROM cards c
          LEFT JOIN items i ON i.id = c.item_id
          LEFT JOIN stories s ON s.id = c.story_id
          LEFT JOIN images im ON im.id = c.image_id
+         LEFT JOIN card_issues ci ON ci.card_id = c.id
          WHERE c.id = ?`,
       )
       .get(id) as any;
@@ -1058,6 +1083,7 @@ export class NewsRepo {
       publishedAt: str(r.published_at),
       topic: str(r.matched_topic),
       group: str(r.group_name),
+      issue: r.issue_number ? { number: r.issue_number, url: r.issue_url } : undefined,
       timeline: r.item_id ? this.timelineOf(r.item_id) : undefined,
       hfs,
       attention: num(r.attention),
