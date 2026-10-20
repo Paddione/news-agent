@@ -7,6 +7,7 @@ import type { Logger } from "@dna/sdk/node";
 import type { Item } from "../db/repos/news.ts";
 import type { Store } from "../db/store.ts";
 import type { Http } from "./http.ts";
+import { imageCandidates } from "./source-images.ts";
 import { readFileSync } from "node:fs";
 
 export interface ImageDeps {
@@ -70,17 +71,25 @@ export class Images {
     }
   }
 
-  /** Resolve an item's image now if the source has one. Returns undefined when one must be generated. */
+  /** Resolve an item's image now from the first usable candidate. Returns undefined when one must be made. */
   async resolve(item: Item): Promise<number | undefined> {
     const cached = item.cacheId ? this.deps.store.sources.cachedById(item.cacheId) : undefined;
-    const url = await this.sourceImage(item.imageUrl ?? cached?.imageUrl);
-    if (!url) return undefined;
-    return this.deps.store.news.addImage({
-      origin: "source",
-      status: "ready",
-      url,
-      itemId: item.id,
+    const candidates = imageCandidates({
+      url: item.url,
+      imageUrl: item.imageUrl ?? cached?.imageUrl,
+      contentMd: cached?.contentMd,
     });
+    for (const candidate of candidates) {
+      const url = await this.sourceImage(candidate);
+      if (url)
+        return this.deps.store.news.addImage({
+          origin: "source",
+          status: "ready",
+          url,
+          itemId: item.id,
+        });
+    }
+    return undefined;
   }
 
   pending(itemId: number | undefined, prompt: string): number {

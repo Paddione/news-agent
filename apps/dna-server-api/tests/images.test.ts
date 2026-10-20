@@ -83,3 +83,84 @@ test("without an OpenAI key the image fails cleanly and the card keeps no image"
     cleanup();
   }
 });
+
+import type { Http } from "../src/news/http.ts";
+import {
+  firstContentImage,
+  githubPreview,
+  imageCandidates,
+  youtubeThumb,
+} from "../src/news/source-images.ts";
+
+/** Answers image/jpeg for urls containing "img-ok", text/html for everything else. */
+const imageHttp = {
+  get: async (url: string) => ({
+    url,
+    headers: new Headers({
+      "content-type":
+        url.includes("img-ok") || url.includes("ytimg") || url.includes("githubassets")
+          ? "image/jpeg"
+          : "text/html",
+    }),
+  }),
+} as unknown as Http;
+
+test("source image candidates: og:image, YouTube, GitHub, first markdown image, skipping logos", () => {
+  assert.equal(
+    youtubeThumb("https://www.youtube.com/watch?v=OLqP8jxJ0Wc&t=3"),
+    "https://i.ytimg.com/vi/OLqP8jxJ0Wc/hqdefault.jpg",
+  );
+  assert.equal(
+    youtubeThumb("https://youtu.be/OLqP8jxJ0Wc"),
+    "https://i.ytimg.com/vi/OLqP8jxJ0Wc/hqdefault.jpg",
+  );
+  assert.equal(
+    youtubeThumb("https://www.youtube.com/shorts/OLqP8jxJ0Wc"),
+    "https://i.ytimg.com/vi/OLqP8jxJ0Wc/hqdefault.jpg",
+  );
+  assert.equal(youtubeThumb("https://example.com/watch?v=x"), undefined);
+  assert.equal(
+    githubPreview("https://github.com/earendil-works/pi-durable/releases/tag/v1.1.0"),
+    "https://opengraph.githubassets.com/1/earendil-works/pi-durable",
+  );
+  assert.equal(githubPreview("https://github.com/orgs/foo/people"), undefined);
+  assert.equal(
+    firstContentImage(
+      "![logo](https://x.dev/logo.png) text ![chart](https://x.dev/img-ok/chart.png)",
+    ),
+    "https://x.dev/img-ok/chart.png",
+  );
+  assert.equal(firstContentImage(undefined), undefined);
+  assert.deepEqual(
+    imageCandidates({
+      url: "https://youtu.be/OLqP8jxJ0Wc",
+      imageUrl: "https://x.dev/page.html",
+      contentMd: "",
+    }),
+    ["https://x.dev/page.html", "https://i.ytimg.com/vi/OLqP8jxJ0Wc/hqdefault.jpg"],
+  );
+});
+
+test("resolve falls through an og:image that is not an image to the next candidate", async () => {
+  const { store, dir, cleanup } = tempStore();
+  try {
+    const images = new Images({
+      store,
+      http: imageHttp,
+      dataDir: dir,
+      promptsDir: PROMPTS_DIR,
+      model: "m",
+    });
+    const { item } = store.news.upsertItem({
+      url: "https://github.com/earendil-works/pi-durable",
+      title: "pi-durable 1.1.0",
+      imageUrl: "https://x.dev/not-an-image.html",
+    });
+    const id = await images.resolve(item);
+    const row = store.news.image(id!)!;
+    assert.equal(row.origin, "source");
+    assert.equal(row.url, "https://opengraph.githubassets.com/1/earendil-works/pi-durable");
+  } finally {
+    cleanup();
+  }
+});
