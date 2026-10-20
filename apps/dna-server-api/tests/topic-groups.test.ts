@@ -161,3 +161,25 @@ test("feedback moves the topic weight, never the group weight", () => {
     cleanup();
   }
 });
+
+test("cards carry their topic's group; the group tab lists exactly those cards", () => {
+  const { store, cleanup } = tempStore();
+  try {
+    const [claude, loose] = onlyTopics(store, [
+      ["Claude Code", 1.5],
+      ["loose topic", 1],
+    ]);
+    const harness = store.taste.addGroup("agent-harnesses", 1.5);
+    store.taste.setKeywordGroup(claude.id, harness.id);
+    const a = seedCard(store, "Claude Code hooks", "claude code").card;
+    const b = seedCard(store, "Claude Code plugins", "Claude Code").card;
+    const c = seedCard(store, "Something else", loose.term).card;
+    assert.equal(store.news.card(a.id)?.group, "agent-harnesses");
+    assert.equal(store.news.card(c.id)?.group, undefined);
+    const ids = store.news.searchCards("group", "agent-harnesses").map((x) => x.id);
+    assert.deepEqual([...ids].sort(), [a.id, b.id].sort());
+    assert.deepEqual(store.news.searchCards("group", "no-such-group"), []);
+  } finally {
+    cleanup();
+  }
+});
