@@ -164,3 +164,38 @@ test("resolve falls through an og:image that is not an image to the next candida
     cleanup();
   }
 });
+
+test("without a key a card image is rendered, not failed; with a key it is queued for generation", async () => {
+  const { store, dir, cleanup } = tempStore();
+  try {
+    const base = {
+      store,
+      http: fixtureHttp("news"),
+      dataDir: dir,
+      promptsDir: PROMPTS_DIR,
+      model: "gpt-image-2.5-flare",
+    };
+    const { item } = store.news.upsertItem({
+      url: "https://openai.com/news/d",
+      title: "D",
+      sourceName: "openai.com",
+    });
+    const rendered = store.news.image(
+      new Images(base).fallback(item, { title: "D", summary: "s" }),
+    )!;
+    assert.equal(rendered.status, "ready");
+    assert.equal(rendered.origin, "generated");
+    assert.equal(rendered.costUsd, 0);
+    assert.ok(rendered.filePath!.endsWith(".png") && existsSync(rendered.filePath!));
+    const row = store.db.prepare("SELECT model FROM images WHERE id = ?").get(rendered.id) as {
+      model: string;
+    };
+    assert.equal(row.model, "card-render@1");
+    const queued = store.news.image(
+      new Images({ ...base, openaiKey: "sk-test" }).fallback(item, { title: "D", summary: "s" }),
+    )!;
+    assert.equal(queued.status, "pending");
+  } finally {
+    cleanup();
+  }
+});

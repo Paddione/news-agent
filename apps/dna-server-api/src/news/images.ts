@@ -7,6 +7,7 @@ import type { Logger } from "@dna/sdk/node";
 import type { Item } from "../db/repos/news.ts";
 import type { Store } from "../db/store.ts";
 import type { Http } from "./http.ts";
+import { CARD_RENDER_MODEL, rasterize, renderCardSvg } from "./card-render.ts";
 import { imageCandidates } from "./source-images.ts";
 import { readFileSync } from "node:fs";
 
@@ -100,6 +101,39 @@ export class Images {
       model: this.deps.model,
       itemId,
     });
+  }
+
+  /** No source image: generate with OpenAI when a key is set, otherwise render one now. */
+  fallback(item: Item | undefined, input: { title: string; summary: string }): number {
+    if (this.deps.openaiKey) return this.pending(item?.id, this.prompt(input));
+    return this.render(item, input.title);
+  }
+
+  /** A rendered card image, ready at once and free. Stored as generated so the schema needs no change. */
+  render(item: Item | undefined, title: string): number {
+    const id = this.deps.store.news.addImage({
+      origin: "generated",
+      status: "pending",
+      model: CARD_RENDER_MODEL,
+      itemId: item?.id,
+    });
+    const dir = join(this.deps.dataDir, "images");
+    mkdirSync(dir, { recursive: true });
+    const file = join(dir, `${id}.png`);
+    const svg = renderCardSvg({
+      title,
+      source: item?.sourceName ?? "Web",
+      topic: item?.matchedTopic,
+      category: item ? this.deps.store.news.latestHfs(item.id)?.primary : undefined,
+    });
+    writeFileSync(file, rasterize(svg));
+    this.deps.store.news.updateImage(id, {
+      status: "ready",
+      filePath: file,
+      costUsd: 0,
+      model: CARD_RENDER_MODEL,
+    });
+    return id;
   }
 
   prompt(input: { title: string; summary: string }): string {

@@ -43,7 +43,7 @@ async function imageFor(
 ): Promise<number> {
   const existing = item ? await deps.images.resolve(item) : undefined;
   if (existing) return existing;
-  return deps.images.pending(item?.id, deps.images.prompt({ title, summary }));
+  return deps.images.fallback(item, { title, summary });
 }
 
 async function startImage(
