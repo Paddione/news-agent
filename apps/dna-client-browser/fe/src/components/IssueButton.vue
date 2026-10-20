@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Turn a card into a GitHub issue in the inbox repo, with an optional note on what to check. Once it has one, the
 // button becomes a chip that opens the issue.
-import { nextTick, ref } from "vue";
-import { CircleDot } from "@lucide/vue";
+import { computed, nextTick, ref } from "vue";
+import { AlertTriangle, Check, CircleDot, Clock, Loader2 } from "@lucide/vue";
 import type { Card } from "@dna/sdk";
 import { api, attempt } from "../client/store";
 
@@ -11,6 +11,36 @@ const open = ref(false);
 const note = ref("");
 const busy = ref(false);
 const field = ref<HTMLTextAreaElement>();
+
+const investigation = computed(() => props.card.issue?.investigation);
+
+const stateText = computed(() => {
+  const s = investigation.value?.status;
+  if (!s) return "";
+  if (s === "done") return "investigated";
+  if (s === "running") return "running";
+  return s; // "queued", "failed"
+});
+
+const chipLabel = computed(() => {
+  if (!props.card.issue) return "";
+  return stateText.value
+    ? `Open issue #${props.card.issue.number}, ${stateText.value}`
+    : `Open issue #${props.card.issue.number}`;
+});
+
+const chipTitle = computed(() => {
+  if (!props.card.issue) return "";
+  return stateText.value
+    ? `Issue #${props.card.issue.number} (${stateText.value})`
+    : `Issue #${props.card.issue.number}`;
+});
+
+function shortTarget(target: string): string {
+  if (target === "home-patrick") return "dotfiles";
+  if (target.startsWith("home-patrick-")) return target.slice("home-patrick-".length);
+  return target;
+}
 
 async function toggle() {
   open.value = !open.value;
@@ -35,13 +65,27 @@ async function create() {
   <a
     v-if="card.issue"
     class="timeline-chip issue-chip"
+    :class="investigation ? `status-${investigation.status}` : ''"
     :href="card.issue.url"
     target="_blank"
     rel="noopener"
-    :aria-label="`Open issue #${card.issue.number}`"
-    :title="`Issue #${card.issue.number}`"
-    ><CircleDot :size="13" /><span>#{{ card.issue.number }}</span></a
+    :aria-label="chipLabel"
+    :title="chipTitle"
   >
+    <Clock v-if="investigation?.status === 'queued'" :size="13" />
+    <Loader2 v-else-if="investigation?.status === 'running'" :size="13" class="spin" />
+    <Check v-else-if="investigation?.status === 'done'" :size="13" />
+    <AlertTriangle v-else-if="investigation?.status === 'failed'" :size="13" />
+    <CircleDot v-else :size="13" />
+    <span>#{{ card.issue.number }}</span>
+    <template v-if="investigation?.status === 'done' && investigation.targets?.length">
+      <span
+        v-for="target in investigation.targets"
+        :key="target"
+        class="target-tag"
+      >{{ shortTarget(target) }}</span>
+    </template>
+  </a>
   <button
     v-else
     class="icon-button small"

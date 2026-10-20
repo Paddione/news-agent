@@ -837,6 +837,22 @@ try {
       (await call("GET", `/v1/cards/${groupedCard.id}`)).card.issue?.number === 1,
     "Create issue turns a card into issue #1 and shows its chip",
   );
+  const investigatedChip = issueCard.locator('a[aria-label="Open issue #1, investigated"]');
+  await investigatedChip.waitFor({ timeout: 15000 });
+  const targetTag = investigatedChip.locator(".target-tag", { hasText: "news-agent" });
+  await targetTag.waitFor({ timeout: 5000 });
+  check(true, "the issue chip has aria-label Open issue #1, investigated and a target tag news-agent");
+
+  await issueCard.locator('button[aria-label="Card details"]').click();
+  const detailDialog = page.locator(".card-detail");
+  await detailDialog.waitFor();
+  const reportLink = detailDialog.locator('a[href*="#issuecomment-"]');
+  await reportLink.waitFor({ timeout: 5000 });
+  check(
+    (await reportLink.textContent())?.includes("Report comment") ?? false,
+    "the detail dialog links the report comment",
+  );
+  await detailDialog.getByRole("button", { name: "Close", exact: true }).click();
   await page.reload();
   await page
     .locator(`[data-card-id="${groupedCard.id}"]`)
