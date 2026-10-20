@@ -38,6 +38,10 @@ export interface Config {
   jevCapture?: string;
   /** auto | web | fallback | firecrawl | fixture; SearchService warns on anything else and searches the web. */
   searchMode: string;
+  /** DNA_ISSUE_*: where a card turned into an issue goes; faux in fixture search mode so tests never reach GitHub. */
+  issueRepo: string;
+  issueLabel: string;
+  issueTracker: "gh" | "faux";
   firecrawlKey?: string;
   sweepCredits: number;
   dailyCredits: number;
@@ -98,6 +102,14 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
       env.NEWS_GPU_SESSION?.trim() || join(homedir(), "unsloth-boxes/scripts/news-gpu-session"),
     jevCapture: env.JEV_CAPTURE?.trim() || undefined,
     searchMode,
+    issueRepo: env.DNA_ISSUE_REPO?.trim() || "Paddione/dotfiles",
+    issueLabel: env.DNA_ISSUE_LABEL?.trim() || "news-card",
+    issueTracker:
+      env.DNA_ISSUE_TRACKER === "gh" || env.DNA_ISSUE_TRACKER === "faux"
+        ? env.DNA_ISSUE_TRACKER
+        : searchMode === "fixture"
+          ? "faux"
+          : "gh",
     firecrawlKey: env.FIRECRAWL_API_KEY?.trim() || undefined,
     sweepCredits: int(env.DNA_FIRECRAWL_SWEEP_CREDITS, 5),
     dailyCredits: int(env.DNA_FIRECRAWL_DAILY_CREDITS, 40),

@@ -34,6 +34,7 @@ import { JudgeRuntime, shellSession, withRuntime } from "./news/judge-runtime.ts
 import { liveHttp } from "./news/http.ts";
 import { Images } from "./news/images.ts";
 import { Quick } from "./news/quick.ts";
+import { fauxTracker, ghTracker } from "./news/issues.ts";
 import { Schedule } from "./news/schedule.ts";
 import { closeStalledSweeps, withdrawStuckSweeps } from "./news/sweep.ts";
 import { SearchService } from "./news/search/index.ts";
@@ -185,6 +186,8 @@ export async function openApp(
     quick,
     dates,
     schedule: new Schedule({ store, cronSchedule: config.cronSchedule }),
+    issues:
+      config.issueTracker === "faux" ? fauxTracker(config.issueRepo) : ghTracker(config.issueRepo),
     route,
   };
   const agents = createAgents(deps);

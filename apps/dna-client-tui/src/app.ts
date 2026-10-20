@@ -304,6 +304,11 @@ export class App {
             `card ${id()}`,
             print.cardDetail(await cl.card(id())).split("\n"),
           );
+        case "issue": {
+          const note = words.slice(1).join(" ").trim();
+          const r = await cl.createIssue(id(), note ? { note } : {});
+          return this.flash(`Issue ${r.repo}#${r.number} ${r.url}`);
+        }
         case "more":
         case "less": {
           const r = await cl.feedback(id(), { signal: name });

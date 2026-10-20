@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
+import { DnaError } from "@dna/sdk";
+import { loadConfig } from "../src/config.ts";
 import { tempStore } from "./helpers.ts";
+import { bootServer, settledSweep } from "./server.ts";
 
 export function seedCard(store: any, title: string) {
   const { item } = store.news.upsertItem({
@@ -44,4 +50,64 @@ test("card issues: stored once per card and shown on the card", () => {
   } finally {
     cleanup();
   }
+});
+
+// The route through a real server with a stub gh on PATH: it fails while FAIL exists, else prints an issue URL.
+test("POST /v1/cards/:id/issue: create once, reuse, validate, survive gh failures", async () => {
+  const bin = mkdtempSync(join(tmpdir(), "gh-stub-"));
+  const fail = join(bin, "FAIL");
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/bin/sh\ncat >/dev/null\n[ "$1" = label ] && exit 0\nif [ -e "${fail}" ]; then echo "HTTP 401: Bad credentials" >&2; exit 1; fi\nn=$(($(cat "${bin}/n" 2>/dev/null || echo 0) + 1)); echo $n > "${bin}/n"\necho "https://github.com/Paddione/dotfiles/issues/$n"\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const s = await bootServer({
+    FIRECRAWL_API_KEY: "",
+    DNA_ISSUE_TRACKER: "gh",
+    PATH: `${bin}:${process.env.PATH}`,
+  });
+  try {
+    const started = await s.cron.newsSweep({ requestId: "issues:1" });
+    await settledSweep(s.client, started.data.sweep!.id);
+    const [a, b] = (await s.client.feed()).items;
+    await assert.rejects(
+      s.client.createIssue(a.id, { note: "x".repeat(2001) }),
+      (e) => e instanceof DnaError && e.status === 400,
+    );
+    await assert.rejects(
+      s.client.createIssue(999_999, {}),
+      (e) => e instanceof DnaError && e.status === 404,
+    );
+    writeFileSync(fail, "");
+    await assert.rejects(
+      s.client.createIssue(a.id, { note: "check our hooks" }),
+      (e) => e instanceof DnaError && e.status === 503 && /HTTP 401/.test(e.message),
+    );
+    assert.equal((await s.client.card(a.id)).card.issue, undefined);
+    rmSync(fail);
+    const first = await s.client.createIssue(a.id, { note: "check our hooks" });
+    assert.deepEqual(
+      { repo: first.repo, number: first.number, note: first.note },
+      { repo: "Paddione/dotfiles", number: 1, note: "check our hooks" },
+    );
+    const again = await s.client.createIssue(a.id, {});
+    assert.equal(again.number, 1);
+    assert.deepEqual((await s.client.card(a.id)).card.issue, {
+      number: 1,
+      url: "https://github.com/Paddione/dotfiles/issues/1",
+    });
+    assert.equal((await s.client.createIssue(b.id, {})).number, 2);
+  } finally {
+    await s.cleanup();
+    rmSync(bin, { recursive: true, force: true });
+  }
+});
+
+test("the tracker defaults to faux in fixture search mode", () => {
+  assert.equal(loadConfig([], { DNA_SEARCH_MODE: "fixture" }).issueTracker, "faux");
+  assert.equal(loadConfig([], { DNA_SEARCH_MODE: "web" }).issueTracker, "gh");
+  assert.equal(
+    loadConfig([], { DNA_SEARCH_MODE: "web", DNA_ISSUE_TRACKER: "faux" }).issueTracker,
+    "faux",
+  );
 });

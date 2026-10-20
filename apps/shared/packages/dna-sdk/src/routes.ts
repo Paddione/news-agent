@@ -109,6 +109,12 @@ export const ROUTES = {
     scope: "feedback",
     summary: "Answer a taste question with labels",
   },
+  "cards.issue": {
+    method: "POST",
+    path: "/v1/cards/:id/issue",
+    scope: "feedback",
+    summary: "Turn a card into a GitHub issue in the inbox repo (once per card)",
+  },
   "keywords.list": {
     method: "GET",
     path: "/v1/keywords",

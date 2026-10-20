@@ -178,6 +178,15 @@ const COMMANDS: Record<string, Command> = {
       return { data: d, text: print.cardDetail(d) };
     },
   },
+  issue: {
+    usage: "issue <card id> [note]",
+    summary: "Turn a card into a GitHub issue in the inbox repo (once per card)",
+    async run() {
+      const note = args.slice(1).join(" ").trim();
+      const r = await client().createIssue(num(args[0], "card id"), note ? { note } : {});
+      return { data: r, text: `${r.repo}#${r.number} ${r.url}` };
+    },
+  },
   more: {
     usage: "more <card id>",
     summary: "Show me more like this",
