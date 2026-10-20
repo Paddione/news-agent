@@ -35,6 +35,7 @@ import { liveHttp } from "./news/http.ts";
 import { Images } from "./news/images.ts";
 import { Quick } from "./news/quick.ts";
 import { fauxTracker, ghTracker } from "./news/issues.ts";
+import { codeGraph, fauxGraph } from "./news/graph.ts";
 import { Schedule } from "./news/schedule.ts";
 import { closeStalledSweeps, withdrawStuckSweeps } from "./news/sweep.ts";
 import { SearchService } from "./news/search/index.ts";
@@ -188,6 +189,12 @@ export async function openApp(
     schedule: new Schedule({ store, cronSchedule: config.cronSchedule }),
     issues:
       config.issueTracker === "faux" ? fauxTracker(config.issueRepo) : ghTracker(config.issueRepo),
+    graph:
+      config.investigate === "faux"
+        ? fauxGraph(config.investigateRepos)
+        : codeGraph(config.investigateRepos),
+    investigateProbe:
+      config.provider === "faux" ? async () => true : localProbe(config.localBaseUrl),
     route,
   };
   const agents = createAgents(deps);
@@ -240,8 +247,7 @@ export async function openApp(
     mainConversation: main.id,
   });
 
-  return {
-    ...deps,
+  return Object.assign(deps, {
     harness,
     ctx,
     agents,
@@ -281,5 +287,5 @@ export async function openApp(
       store.close();
       log.info("app.closed", {});
     },
-  };
+  });
 }

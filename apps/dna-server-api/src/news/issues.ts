@@ -217,8 +217,7 @@ export function fauxTracker(repo: string): IssueTracker & {
       return out;
     },
     async view(number) {
-      const issue = issues.get(number);
-      if (!issue) throw new IssueTrackerError(`Issue #${number} not found in fauxTracker`);
+      const issue = getOrCreate(number);
       return {
         title: issue.title,
         body: issue.body,

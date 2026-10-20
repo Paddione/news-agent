@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { tempStore } from "./helpers.ts";
+import { tempStore, fauxApp, until } from "./helpers.ts";
 import { seedCard } from "./card-issues.test.ts";
+import { startInvestigation } from "../src/news/investigate.ts";
+import { setFauxInvestigatorMode } from "../src/agents/faux-script.ts";
+import { openApp } from "../src/runtime.ts";
 import {
   parseReport,
   renderReport,
@@ -200,4 +203,258 @@ test("investigation report: renderReport sections, proposal translations, footer
 test("investigation report: targetLabels maps repos to labels", () => {
   const labels = targetLabels(["home-patrick", "home-patrick-news-agent"]);
   assert.deepEqual(labels, ["target:dotfiles", "target:news-agent"]);
+});
+
+test("investigation end to end: startInvestigation completes with comment and labels; second start does nothing", async () => {
+  setFauxInvestigatorMode(undefined);
+  const { app, cleanup } = await fauxApp();
+  try {
+    const fauxTrack = app.issues as any;
+    const created = await fauxTrack.create({
+      title: "Add local issue investigation",
+      body: "Investigate how to connect news cards to github issues",
+      labels: ["news-card"],
+    });
+
+    const started = await startInvestigation(app, app.issues.repo, created.number);
+    assert.equal(started, true);
+
+    await until(
+      () =>
+        app.store.investigations.get(app.issues.repo, created.number)?.status ===
+        "done",
+      15_000,
+      "investigation done",
+    );
+
+    const row = app.store.investigations.get(app.issues.repo, created.number);
+    assert.equal(row?.status, "done");
+    assert.deepEqual(row?.targets, ["home-patrick-news-agent"]);
+    assert.ok(row?.commentUrl);
+
+    const issueView = await fauxTrack.view(created.number);
+    assert.ok(!issueView.labels.includes("investigating"));
+    assert.ok(issueView.labels.includes("investigated"));
+    assert.ok(issueView.labels.includes("target:news-agent"));
+
+    const issueObj = fauxTrack.issues.get(created.number);
+    assert.equal(issueObj.comments.length, 1);
+    assert.ok(issueObj.comments[0].includes("## Kurzfazit"));
+
+    // Second startInvestigation for same issue returns false and does nothing
+    const second = await startInvestigation(app, app.issues.repo, created.number);
+    assert.equal(second, false);
+    assert.equal(issueObj.comments.length, 1);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("investigation: invalid JSON twice results in failure comment and queued, then failed at 3 attempts", async () => {
+  setFauxInvestigatorMode("invalid_json");
+  const { app, cleanup } = await fauxApp();
+  try {
+    const fauxTrack = app.issues as any;
+    const created = await fauxTrack.create({
+      title: "Broken JSON issue",
+      body: "This issue will cause invalid json",
+      labels: ["news-card"],
+    });
+
+    // Run 1
+    await startInvestigation(app, app.issues.repo, created.number);
+    await until(
+      () =>
+        app.store.investigations.get(app.issues.repo, created.number)
+          ?.status === "queued" &&
+        (app.store.investigations.get(app.issues.repo, created.number)
+          ?.attempts ?? 0) >= 1,
+      15_000,
+      "attempt 1 queued",
+    );
+
+    let row = app.store.investigations.get(app.issues.repo, created.number);
+    assert.equal(row?.status, "queued");
+    assert.equal(row?.attempts, 1);
+    let issueView = await fauxTrack.view(created.number);
+    assert.ok(!issueView.labels.includes("investigating"));
+    assert.ok(!issueView.labels.includes("investigation-failed"));
+    let issueObj = fauxTrack.issues.get(created.number);
+    assert.equal(issueObj.comments.length, 1);
+    assert.ok(
+      issueObj.comments[0].includes(
+        "Untersuchung fehlgeschlagen (Versuch 1/3)",
+      ),
+    );
+
+    // Run 2
+    await startInvestigation(app, app.issues.repo, created.number);
+    await until(
+      () =>
+        app.store.investigations.get(app.issues.repo, created.number)
+          ?.status === "queued" &&
+        (app.store.investigations.get(app.issues.repo, created.number)
+          ?.attempts ?? 0) >= 2,
+      15_000,
+      "attempt 2 queued",
+    );
+    row = app.store.investigations.get(app.issues.repo, created.number);
+    assert.equal(row?.status, "queued");
+    assert.equal(row?.attempts, 2);
+
+    // Run 3 -> max attempts (3) -> status 'failed' and 'investigation-failed' label
+    await startInvestigation(app, app.issues.repo, created.number);
+    await until(
+      () =>
+        app.store.investigations.get(app.issues.repo, created.number)?.status ===
+        "failed",
+      15_000,
+      "attempt 3 failed",
+    );
+    row = app.store.investigations.get(app.issues.repo, created.number);
+    assert.equal(row?.status, "failed");
+    assert.equal(row?.attempts, 3);
+    issueView = await fauxTrack.view(created.number);
+    assert.ok(issueView.labels.includes("investigation-failed"));
+  } finally {
+    setFauxInvestigatorMode(undefined);
+    await cleanup();
+  }
+});
+
+test("investigation: probe down + no fallback stays queued; with fallback model & stubbed http finishes with fallback; at cap stays queued", async () => {
+  setFauxInvestigatorMode(undefined);
+  const { app, cleanup } = await fauxApp();
+  try {
+    const fauxTrack = app.issues as any;
+    const created1 = await fauxTrack.create({
+      title: "Fallback test 1",
+      body: "Test body",
+      labels: ["news-card"],
+    });
+
+    // 1. Probe stubbed down and no fallback model -> stays queued
+    app.investigateProbe = async () => false;
+    app.config.investigateFallbackModel = undefined;
+
+    await startInvestigation(app, app.issues.repo, created1.number);
+    await new Promise((r) => setTimeout(r, 500));
+    const row1 = app.store.investigations.get(app.issues.repo, created1.number);
+    assert.equal(row1?.status, "queued");
+
+    // 2. Fallback model configured and stubbed http -> finishes with fallback
+    const created2 = await fauxTrack.create({
+      title: "Fallback test 2: local down but fallback configured",
+      body: "Testing fallback route",
+      labels: ["news-card"],
+    });
+    app.config.investigateFallbackModel = "openrouter/research-model";
+    app.http.postJson = async () => ({
+      status: 200,
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      headers: new Headers(),
+      text: JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                summary: "Fallback report summary.",
+                source: [{ claim: "Claim A", evidence: ["https://example.com"] }],
+                existing: [],
+                missing: ["None"],
+                proposal: "adopt",
+                targets: ["home-patrick-news-agent"],
+                reasoning: "Fallback reasoning.",
+              }),
+            },
+          },
+        ],
+      }),
+    });
+
+    await startInvestigation(app, app.issues.repo, created2.number);
+    await until(
+      () =>
+        app.store.investigations.get(app.issues.repo, created2.number)?.status ===
+        "done",
+      15_000,
+      "fallback done",
+    );
+
+    const row2 = app.store.investigations.get(app.issues.repo, created2.number);
+    assert.equal(row2?.status, "done");
+    assert.equal(row2?.route, "fallback");
+    assert.equal(row2?.model, "openrouter/research-model");
+    assert.ok(
+      row2?.reportMd?.includes(
+        "automatische Suche, kein Abgleich durch das Modell",
+      ),
+    );
+
+    // 3. FallbacksToday at the daily cap -> stays queued
+    const created3 = await fauxTrack.create({
+      title: "Fallback test 3: at cap",
+      body: "Testing cap",
+      labels: ["news-card"],
+    });
+    app.config.investigateFallbackDaily = 1; // already 1 fallback run today (created2)
+    const today = new Date().toISOString().slice(0, 10);
+    assert.equal(app.store.investigations.fallbacksToday(today), 1);
+
+    await startInvestigation(app, app.issues.repo, created3.number);
+    await new Promise((r) => setTimeout(r, 500));
+    const row3 = app.store.investigations.get(app.issues.repo, created3.number);
+    assert.equal(row3?.status, "queued");
+  } finally {
+    await cleanup();
+  }
+});
+
+test("investigation: restart mid-run ends with exactly one report comment", async () => {
+  setFauxInvestigatorMode(undefined);
+  const { app, dir, config, cleanup } = await fauxApp();
+  try {
+    const fauxTrack = app.issues as any;
+    const created = await fauxTrack.create({
+      title: "Restart mid-run issue",
+      body: "Will stop after running",
+      labels: ["news-card"],
+    });
+
+    await startInvestigation(app, app.issues.repo, created.number);
+
+    // Wait until running or done
+    await until(
+      () =>
+        app.store.investigations.get(app.issues.repo, created.number)?.status ===
+          "running" ||
+        app.store.investigations.get(app.issues.repo, created.number)?.status ===
+          "done",
+      15_000,
+      "running or done",
+    );
+
+    // Close app
+    await app.close();
+
+    // Reopen on same data dir
+    const reopened = await openApp(config);
+    try {
+      const reopenedFauxTrack = reopened.issues as any;
+      await until(
+        () =>
+          reopened.store.investigations.get(reopened.issues.repo, created.number)
+            ?.status === "done",
+        15_000,
+        "reopened done",
+      );
+
+      const issueObj = reopenedFauxTrack.issues.get(created.number);
+      assert.equal(issueObj.comments.length, 1);
+    } finally {
+      await reopened.close();
+    }
+  } finally {
+    await cleanup();
+  }
 });

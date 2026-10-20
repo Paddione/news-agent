@@ -13,6 +13,7 @@ import type { Quick } from "./news/quick.ts";
 import type { IssueTracker } from "./news/issues.ts";
 import type { Schedule } from "./news/schedule.ts";
 import type { SearchService } from "./news/search/index.ts";
+import type { CodeGraph } from "./news/graph.ts";
 
 export interface Deps {
   config: Config;
@@ -32,6 +33,10 @@ export interface Deps {
   schedule: Schedule;
   /** Where cards turned into issues go (gh, or faux in fixture mode). */
   issues: IssueTracker;
+  /** The code graph representation for repository tools. */
+  graph: CodeGraph;
+  /** Optional probe for checking local investigator agent health. */
+  investigateProbe?: () => Promise<boolean>;
   /** DNA_FALLBACK_*: local agent model or the hosted fallback, checked per sweep. Unset without a fallback. */
   route?: AgentRoute;
 }
