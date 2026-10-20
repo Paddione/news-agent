@@ -629,9 +629,34 @@ export class NewsRepo {
   // Card issues
 
   cardIssue(cardId: number): CardIssue | undefined {
-    const r = this.db.prepare("SELECT * FROM card_issues WHERE card_id = ?").get(cardId) as any;
+    const r = this.db
+      .prepare(
+        `SELECT ci.*, inv.status AS inv_status, inv.targets_json AS inv_targets_json,
+                inv.comment_url AS inv_comment_url, inv.route AS inv_route, inv.model AS inv_model
+         FROM card_issues ci
+         LEFT JOIN investigations inv ON (inv.card_id = ci.card_id OR (inv.repo = ci.repo AND inv.number = ci.number))
+         WHERE ci.card_id = ?`,
+      )
+      .get(cardId) as any;
     return r
-      ? { repo: r.repo, number: r.number, url: r.url, note: str(r.note), createdAt: r.created_at }
+      ? {
+          repo: r.repo,
+          number: r.number,
+          url: r.url,
+          note: str(r.note),
+          createdAt: r.created_at,
+          ...(r.inv_status
+            ? {
+                investigation: {
+                  status: r.inv_status,
+                  targets: parse<string[]>(r.inv_targets_json, []),
+                  commentUrl: str(r.inv_comment_url),
+                  route: r.inv_route ?? undefined,
+                  model: str(r.inv_model),
+                },
+              }
+            : {}),
+        }
       : undefined;
   }
 
@@ -1024,6 +1049,8 @@ export class NewsRepo {
                 (SELECT g.name FROM keywords k JOIN topic_groups g ON g.id = k.group_id
                  WHERE k.kind = 'topic' AND lower(k.term) = lower(i.matched_topic) LIMIT 1) AS group_name,
                 ci.number AS issue_number, ci.url AS issue_url,
+                inv.status AS inv_status, inv.targets_json AS inv_targets_json, inv.comment_url AS inv_comment_url,
+                inv.route AS inv_route, inv.model AS inv_model,
                 s.title AS story_title,
                 im.id AS im_id, im.origin AS im_origin, im.status AS im_status, im.url AS im_url
          FROM cards c
@@ -1031,6 +1058,7 @@ export class NewsRepo {
          LEFT JOIN stories s ON s.id = c.story_id
          LEFT JOIN images im ON im.id = c.image_id
          LEFT JOIN card_issues ci ON ci.card_id = c.id
+         LEFT JOIN investigations inv ON (inv.card_id = c.id OR (ci.repo IS NOT NULL AND inv.repo = ci.repo AND inv.number = ci.number))
          WHERE c.id = ?`,
       )
       .get(id) as any;
@@ -1083,7 +1111,23 @@ export class NewsRepo {
       publishedAt: str(r.published_at),
       topic: str(r.matched_topic),
       group: str(r.group_name),
-      issue: r.issue_number ? { number: r.issue_number, url: r.issue_url } : undefined,
+      issue: r.issue_number
+        ? {
+            number: r.issue_number,
+            url: r.issue_url,
+            ...(r.inv_status
+              ? {
+                  investigation: {
+                    status: r.inv_status,
+                    targets: parse<string[]>(r.inv_targets_json, []),
+                    commentUrl: str(r.inv_comment_url),
+                    route: r.inv_route ?? undefined,
+                    model: str(r.inv_model),
+                  },
+                }
+              : {}),
+          }
+        : undefined,
       timeline: r.item_id ? this.timelineOf(r.item_id) : undefined,
       hfs,
       attention: num(r.attention),

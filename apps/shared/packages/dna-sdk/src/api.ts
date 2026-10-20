@@ -54,6 +54,15 @@ export interface Timeline extends TimelineSummary {
   cards: Card[];
 }
 
+export type InvestigationStatus = "queued" | "running" | "done" | "failed";
+export interface Investigation {
+  status: InvestigationStatus;
+  targets: string[];
+  commentUrl?: string;
+  route?: "local" | "fallback";
+  model?: string;
+}
+
 export interface Card {
   id: number;
   /** Always "news" in the feed; "story" only on old story cards from before timelines. */
@@ -84,7 +93,7 @@ export interface Card {
   /** The group of that topic, when it has one. */
   group?: string;
   /** The GitHub issue the reader turned this card into. */
-  issue?: { number: number; url: string };
+  issue?: { number: number; url: string; investigation?: Investigation };
   timeline?: TimelineRef;
   hfs?: HfsScores;
   attention?: number;
@@ -134,6 +143,7 @@ export interface CardIssue {
   url: string;
   note?: string;
   createdAt: string;
+  investigation?: Investigation;
 }
 
 /** A hand-set weight over several topics; a topic's effective weight is its own times its group's. */
