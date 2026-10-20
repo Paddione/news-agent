@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import { COMPONENT_SPECS, type Card, type CardComponent, type TranscriptItem } from "@dna/sdk";
-import { CardBlock, hfsBadges } from "../src/cards.ts";
+import { CardBlock, figureLines, hfsBadges } from "../src/cards.ts";
 import { buildCommands } from "../src/commands.ts";
 import { contextBar } from "../src/context-bar.ts";
 import { agentText, itemComponent } from "../src/render.ts";
@@ -200,4 +200,21 @@ test("every command declares at most one capability, and every capability has a 
         `${name} declares ${id}`,
       );
   }
+});
+
+test("figures render as aligned lines with bars for a group and no banned punctuation", () => {
+  const lines = figureLines({
+    figures: [
+      { label: "New model", value: 72.5, unit: "%", group: "swe" },
+      { label: "Previous", value: 61, unit: "%", group: "swe" },
+      { label: "Price", value: 3, unit: "$" },
+    ],
+  }).map(stripTerminalSequences);
+  assert.equal(lines.length, 3);
+  assert.match(lines[0], /^ {2}New model {2,}72\.5 % {2}▇{20}$/);
+  assert.match(lines[1], /^ {2}Previous {2,}61 % {2}▇{17}$/);
+  assert.match(lines[2], /^ {2}Price {2,}3 \$$/);
+  assert.equal(lines[0].indexOf("72.5"), lines[1].indexOf("61"), "values align");
+  clean(lines, "figure lines");
+  assert.deepEqual(figureLines({}), []);
 });
