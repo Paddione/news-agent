@@ -47,7 +47,7 @@ export function createInvestigateTask(
 
   return defineTask<
     InvestigateInput,
-    { phase: "wait" | "refresh" | "research" | "finish" },
+    { phase: "wait" | "refresh" | "research" },
     { status: string; route?: string; done: boolean }
   >({
     name: "dna.investigate",
@@ -59,16 +59,12 @@ export function createInvestigateTask(
         while (!runtime.signal.aborted) {
           const sweepActive = deps.store.sweeps.active().length > 0;
           const running = deps.store.investigations.running();
-          const otherRunning =
-            running && !(running.repo === repo && running.number === number);
+          const otherRunning = running && !(running.repo === repo && running.number === number);
           if (!sweepActive && !otherRunning) break;
           await new Promise((r) => setTimeout(r, 100));
         }
         if (runtime.signal.aborted) return;
-        await runtime.commit(
-          () => ({ status: "running", checkpoint: { phase: "refresh" } }),
-          ctx,
-        );
+        await runtime.commit(() => ({ status: "running", checkpoint: { phase: "refresh" } }), ctx);
       },
 
       refresh: async (task, runtime, ctx: Context) => {
@@ -97,10 +93,7 @@ export function createInvestigateTask(
           deps.log.warn("investigate.projects_failed", { error: String(err) });
         }
 
-        await runtime.commit(
-          () => ({ status: "running", checkpoint: { phase: "research" } }),
-          ctx,
-        );
+        await runtime.commit(() => ({ status: "running", checkpoint: { phase: "research" } }), ctx);
       },
 
       research: async (task, runtime, ctx: Context) => {
@@ -117,8 +110,7 @@ export function createInvestigateTask(
 
         if (localUp) {
           route = "local";
-          modelName =
-            deps.catalog.provider === "faux" ? "faux-local" : deps.config.researchModel;
+          modelName = deps.catalog.provider === "faux" ? "faux-local" : deps.config.researchModel;
         } else if (deps.config.investigateFallbackModel && fallbackUnderCap) {
           route = "fallback";
           modelName = deps.config.investigateFallbackModel;
@@ -150,9 +142,8 @@ export function createInvestigateTask(
           if (route === "local") {
             let childId: ConversationId | undefined;
             await runtime.commit(async (tx) => {
-              const existingConv = (
-                await tx.scanConversations({ ownerTaskId: runtime.taskId }, 2)
-              ).items[0];
+              const existingConv = (await tx.scanConversations({ ownerTaskId: runtime.taskId }, 2))
+                .items[0];
               if (existingConv) {
                 childId = existingConv.id;
               } else {
@@ -162,23 +153,19 @@ export function createInvestigateTask(
                 await configure(tx, created.id, investigatorChild());
                 childId = created.id;
               }
+              return undefined;
             }, ctx);
 
             const handle = await runtime.conversation(childId!, ctx);
             if (!handle) throw new Error("Could not open investigator child conversation");
 
-            const prompt = loadPrompt(
-              agentsDir,
-              "investigator",
-              "USER_PROMPT_investigate.md",
-              {
-                allowed_projects: deps.config.investigateRepos.join(", "),
-                repo,
-                number,
-                title: issue.title,
-                body: issue.body,
-              },
-            );
+            const prompt = loadPrompt(agentsDir, "investigator", "USER_PROMPT_investigate.md", {
+              allowed_projects: deps.config.investigateRepos.join(", "),
+              repo,
+              number,
+              title: issue.title,
+              body: issue.body,
+            });
 
             const submission = await handle.submit(
               {
@@ -197,6 +184,7 @@ export function createInvestigateTask(
             await runtime.commit(async (tx) => {
               const entry = await tx.entry(AssistantEntry, settled.answer);
               answer = answerTextOf(entry?.model?.[0] as AssistantMessage | undefined);
+              return undefined;
             }, ctx);
 
             try {
@@ -218,9 +206,8 @@ export function createInvestigateTask(
               let repairAnswer = "";
               await runtime.commit(async (tx) => {
                 const entry = await tx.entry(AssistantEntry, repSettled.answer);
-                repairAnswer = answerTextOf(
-                  entry?.model?.[0] as AssistantMessage | undefined,
-                );
+                repairAnswer = answerTextOf(entry?.model?.[0] as AssistantMessage | undefined);
+                return undefined;
               }, ctx);
               report = parseReport(repairAnswer, deps.config.investigateRepos);
             }
@@ -264,9 +251,7 @@ export function createInvestigateTask(
                     !searchRes.includes("No matches") &&
                     searchRes.trim().length > 0
                   ) {
-                    paths.push(
-                      `Hit for "${term}": ${searchRes.slice(0, 100).replace(/\n/g, " ")}`,
-                    );
+                    paths.push(`Hit for "${term}": ${searchRes.slice(0, 100).replace(/\n/g, " ")}`);
                   }
                 } catch {}
               }
@@ -367,10 +352,7 @@ export function createInvestigateTask(
     },
 
     abort: async (_task, runtime, ctx: Context) => {
-      await runtime.commit(
-        () => ({ status: "terminal", outcome: { status: "aborted" } }),
-        ctx,
-      );
+      await runtime.commit(() => ({ status: "terminal", outcome: { status: "aborted" } }), ctx);
     },
   });
 }
@@ -391,30 +373,20 @@ export async function startInvestigation(
   if (cardId !== undefined) input.cardId = cardId;
 
   await app.harness.harness.commit(async (tx) => {
-    await tx.createTask(
-      app.agents.investigateTask,
-      input,
-      {
-        ownership: { kind: "conversation" },
-        conversationId: app.main.id,
-        background: true,
-      },
-    );
+    await tx.createTask(app.agents.investigateTask, input, {
+      ownership: { kind: "conversation" },
+      conversationId: app.main.id,
+      background: true,
+    });
   }, app.ctx);
 
   return true;
 }
 
-export async function investigateCatchup(
-  app: App,
-  now = Date.now(),
-): Promise<number> {
+export async function investigateCatchup(app: App, now = Date.now()): Promise<number> {
   if (app.config.investigate === "off") return 0;
 
-  const lastCatchup = app.store.settings.get<number | undefined>(
-    "investigateCatchupAt",
-    undefined,
-  );
+  const lastCatchup = app.store.settings.get<number | undefined>("investigateCatchupAt", undefined);
   if (lastCatchup !== undefined && now - lastCatchup < CATCHUP_MINUTES * 60_000) {
     return 0;
   }
@@ -430,20 +402,9 @@ export async function investigateCatchup(
 
     const row = app.store.investigations.get(app.issues.repo, item.number);
 
-    if (
-      row &&
-      row.status === "failed" &&
-      !hasFailed &&
-      !hasInvestigating &&
-      !hasInvestigated
-    ) {
+    if (row && row.status === "failed" && !hasFailed && !hasInvestigating && !hasInvestigated) {
       app.store.investigations.retry(app.issues.repo, item.number);
-      const started = await startInvestigation(
-        app,
-        app.issues.repo,
-        item.number,
-        row.cardId,
-      );
+      const started = await startInvestigation(app, app.issues.repo, item.number, row.cardId);
       if (started) startedCount++;
       continue;
     }
@@ -452,10 +413,7 @@ export async function investigateCatchup(
       continue;
     }
 
-    if (
-      row &&
-      (row.status === "queued" || row.status === "running" || row.status === "done")
-    ) {
+    if (row && (row.status === "queued" || row.status === "running" || row.status === "done")) {
       continue;
     }
 

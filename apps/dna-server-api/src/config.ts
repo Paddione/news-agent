@@ -134,8 +134,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     cronToken: env.DNA_CRON_TOKEN?.trim() ?? "",
     stallMinutes: int(env.DNA_STALL_MINUTES, 30),
     investigate:
-      (env.DNA_INVESTIGATE as "on" | "off" | "faux") ??
-      (searchMode === "fixture" ? "faux" : "on"),
+      (env.DNA_INVESTIGATE as "on" | "off" | "faux") ?? (searchMode === "fixture" ? "faux" : "on"),
     investigateRepos: env.DNA_INVESTIGATE_REPOS
       ? env.DNA_INVESTIGATE_REPOS.split(",")
           .map((s) => s.trim())

@@ -221,9 +221,7 @@ test("investigation end to end: startInvestigation completes with comment and la
     assert.equal(started, true);
 
     await until(
-      () =>
-        app.store.investigations.get(app.issues.repo, created.number)?.status ===
-        "done",
+      () => app.store.investigations.get(app.issues.repo, created.number)?.status === "done",
       15_000,
       "investigation done",
     );
@@ -266,10 +264,8 @@ test("investigation: invalid JSON twice results in failure comment and queued, t
     await startInvestigation(app, app.issues.repo, created.number);
     await until(
       () =>
-        app.store.investigations.get(app.issues.repo, created.number)
-          ?.status === "queued" &&
-        (app.store.investigations.get(app.issues.repo, created.number)
-          ?.attempts ?? 0) >= 1,
+        app.store.investigations.get(app.issues.repo, created.number)?.status === "queued" &&
+        (app.store.investigations.get(app.issues.repo, created.number)?.attempts ?? 0) >= 1,
       15_000,
       "attempt 1 queued",
     );
@@ -282,20 +278,14 @@ test("investigation: invalid JSON twice results in failure comment and queued, t
     assert.ok(!issueView.labels.includes("investigation-failed"));
     let issueObj = fauxTrack.issues.get(created.number);
     assert.equal(issueObj.comments.length, 1);
-    assert.ok(
-      issueObj.comments[0].includes(
-        "Untersuchung fehlgeschlagen (Versuch 1/3)",
-      ),
-    );
+    assert.ok(issueObj.comments[0].includes("Untersuchung fehlgeschlagen (Versuch 1/3)"));
 
     // Run 2
     await startInvestigation(app, app.issues.repo, created.number);
     await until(
       () =>
-        app.store.investigations.get(app.issues.repo, created.number)
-          ?.status === "queued" &&
-        (app.store.investigations.get(app.issues.repo, created.number)
-          ?.attempts ?? 0) >= 2,
+        app.store.investigations.get(app.issues.repo, created.number)?.status === "queued" &&
+        (app.store.investigations.get(app.issues.repo, created.number)?.attempts ?? 0) >= 2,
       15_000,
       "attempt 2 queued",
     );
@@ -306,9 +296,7 @@ test("investigation: invalid JSON twice results in failure comment and queued, t
     // Run 3 -> max attempts (3) -> status 'failed' and 'investigation-failed' label
     await startInvestigation(app, app.issues.repo, created.number);
     await until(
-      () =>
-        app.store.investigations.get(app.issues.repo, created.number)?.status ===
-        "failed",
+      () => app.store.investigations.get(app.issues.repo, created.number)?.status === "failed",
       15_000,
       "attempt 3 failed",
     );
@@ -375,9 +363,7 @@ test("investigation: probe down + no fallback stays queued; with fallback model 
 
     await startInvestigation(app, app.issues.repo, created2.number);
     await until(
-      () =>
-        app.store.investigations.get(app.issues.repo, created2.number)?.status ===
-        "done",
+      () => app.store.investigations.get(app.issues.repo, created2.number)?.status === "done",
       15_000,
       "fallback done",
     );
@@ -386,11 +372,7 @@ test("investigation: probe down + no fallback stays queued; with fallback model 
     assert.equal(row2?.status, "done");
     assert.equal(row2?.route, "fallback");
     assert.equal(row2?.model, "openrouter/research-model");
-    assert.ok(
-      row2?.reportMd?.includes(
-        "automatische Suche, kein Abgleich durch das Modell",
-      ),
-    );
+    assert.ok(row2?.reportMd?.includes("automatische Suche, kein Abgleich durch das Modell"));
 
     // 3. FallbacksToday at the daily cap -> stays queued
     const created3 = await fauxTrack.create({
@@ -427,10 +409,8 @@ test("investigation: restart mid-run ends with exactly one report comment", asyn
     // Wait until running or done
     await until(
       () =>
-        app.store.investigations.get(app.issues.repo, created.number)?.status ===
-          "running" ||
-        app.store.investigations.get(app.issues.repo, created.number)?.status ===
-          "done",
+        app.store.investigations.get(app.issues.repo, created.number)?.status === "running" ||
+        app.store.investigations.get(app.issues.repo, created.number)?.status === "done",
       15_000,
       "running or done",
     );
@@ -444,8 +424,8 @@ test("investigation: restart mid-run ends with exactly one report comment", asyn
       const reopenedFauxTrack = reopened.issues as any;
       await until(
         () =>
-          reopened.store.investigations.get(reopened.issues.repo, created.number)
-            ?.status === "done",
+          reopened.store.investigations.get(reopened.issues.repo, created.number)?.status ===
+          "done",
         15_000,
         "reopened done",
       );
@@ -506,12 +486,15 @@ test("investigateCatchup: handles news-card labels, throttles, and triggers from
     app.store.investigations.fail(app.issues.repo, failedIssue.number, "err 2");
     app.store.investigations.start(app.issues.repo, failedIssue.number, "local", "model-x");
     app.store.investigations.fail(app.issues.repo, failedIssue.number, "fatal err 3");
-    assert.equal(app.store.investigations.get(app.issues.repo, failedIssue.number)?.status, "failed");
+    assert.equal(
+      app.store.investigations.get(app.issues.repo, failedIssue.number)?.status,
+      "failed",
+    );
 
     // Spy on app.issues.list
     let listCalls = 0;
     const origList = app.issues.list.bind(app.issues);
-    app.issues.list = async (label?: string) => {
+    app.issues.list = async (label: string = app.config.issueLabel) => {
       listCalls++;
       return origList(label);
     };
@@ -543,21 +526,29 @@ test("investigateCatchup: handles news-card labels, throttles, and triggers from
 
     // Workflow call: workflow.newsSweep runs it
     app.store.settings.set("investigateCatchupAt", 0);
-    const routes = workflowRoutes({ app });
+    const routes = workflowRoutes({ app, hub: null as any });
     let resStatus = 200;
     let resBody: any;
     const fakeReq: any = {
       body: { trigger: "manual", requestId: "test-sweep-catchup", cards: 1 },
     };
     const fakeRes: any = {
-      status(c: number) { resStatus = c; return this; },
-      json(b: any) { resBody = b; return this; },
-      set() { return this; },
+      status(c: number) {
+        resStatus = c;
+        return this;
+      },
+      json(b: any) {
+        resBody = b;
+        return this;
+      },
+      set() {
+        return this;
+      },
     };
     await routes["workflow.newsSweep"](fakeReq, fakeRes);
     // News sweep must have called investigateCatchup, advancing listCalls to 2 and setting investigateCatchupAt
     assert.equal(listCalls, 2);
-    assert.ok(app.store.settings.get("investigateCatchupAt") !== undefined);
+    assert.ok(app.store.settings.get("investigateCatchupAt", 0) !== 0);
   } finally {
     await cleanup();
   }

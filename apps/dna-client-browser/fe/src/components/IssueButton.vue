@@ -79,11 +79,9 @@ async function create() {
     <CircleDot v-else :size="13" />
     <span>#{{ card.issue.number }}</span>
     <template v-if="investigation?.status === 'done' && investigation.targets?.length">
-      <span
-        v-for="target in investigation.targets"
-        :key="target"
-        class="target-tag"
-      >{{ shortTarget(target) }}</span>
+      <span v-for="target in investigation.targets" :key="target" class="target-tag">{{
+        shortTarget(target)
+      }}</span>
     </template>
   </a>
   <button

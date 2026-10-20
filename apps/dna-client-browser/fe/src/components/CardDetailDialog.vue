@@ -90,10 +90,7 @@ function shortTarget(target: string): string {
             </dd>
             <dt v-if="detail.card.issue.investigation.commentUrl">Report</dt>
             <dd v-if="detail.card.issue.investigation.commentUrl">
-              <a
-                :href="detail.card.issue.investigation.commentUrl"
-                target="_blank"
-                rel="noopener"
+              <a :href="detail.card.issue.investigation.commentUrl" target="_blank" rel="noopener"
                 >Report comment</a
               >
             </dd>

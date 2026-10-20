@@ -22,11 +22,7 @@ const defaultExecFile: ExecFile = (file, args, input) =>
   });
 
 const clip = (text: string | undefined, max: number) =>
-  !text
-    ? ""
-    : text.length > max
-      ? `${text.slice(0, max)} [${text.length - max} more chars]`
-      : text;
+  !text ? "" : text.length > max ? `${text.slice(0, max)} [${text.length - max} more chars]` : text;
 
 export function extractFirstQualifiedName(stdout: string): string | undefined {
   let currentPrefix = "";
@@ -48,15 +44,10 @@ export function extractFirstQualifiedName(stdout: string): string | undefined {
   return undefined;
 }
 
-export function codeGraph(
-  allowed: string[],
-  exec: ExecFile = defaultExecFile,
-): CodeGraph {
+export function codeGraph(allowed: string[], exec: ExecFile = defaultExecFile): CodeGraph {
   const check = (project: string) => {
     if (!allowed.includes(project))
-      throw new Error(
-        `Project "${project}" is not in the allowed list: ${allowed.join(", ")}`,
-      );
+      throw new Error(`Project "${project}" is not in the allowed list: ${allowed.join(", ")}`);
   };
 
   const run = async (args: string[]) => {
@@ -89,13 +80,7 @@ export function codeGraph(
     },
 
     async refresh(root: string) {
-      await run([
-        "cli",
-        "--quiet",
-        "index_repository",
-        "--repo-path",
-        root,
-      ]);
+      await run(["cli", "--quiet", "index_repository", "--repo-path", root]);
     },
 
     async search(project: string, pattern: string) {
@@ -115,14 +100,7 @@ export function codeGraph(
 
     async symbol(project: string, name: string) {
       check(project);
-      const out = await run([
-        "cli",
-        "search_graph",
-        "--project",
-        project,
-        "--name-pattern",
-        name,
-      ]);
+      const out = await run(["cli", "search_graph", "--project", project, "--name-pattern", name]);
       const qn = extractFirstQualifiedName(out);
       if (!qn) return clip(out, 6000);
       const snippet = await run([
@@ -138,12 +116,7 @@ export function codeGraph(
 
     async overview(project: string) {
       check(project);
-      const out = await run([
-        "cli",
-        "get_architecture",
-        "--project",
-        project,
-      ]);
+      const out = await run(["cli", "get_architecture", "--project", project]);
       return clip(out, 6000);
     },
   };
@@ -152,9 +125,7 @@ export function codeGraph(
 export function fauxGraph(allowed: string[]): CodeGraph {
   const check = (project: string) => {
     if (!allowed.includes(project))
-      throw new Error(
-        `Project "${project}" is not in the allowed list: ${allowed.join(", ")}`,
-      );
+      throw new Error(`Project "${project}" is not in the allowed list: ${allowed.join(", ")}`);
   };
   return {
     async projects() {

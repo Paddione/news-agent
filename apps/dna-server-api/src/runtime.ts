@@ -272,7 +272,7 @@ export async function openApp(
       }
       return model;
     },
-    setCompaction(next) {
+    setCompaction(next: Partial<CompactionSetting>) {
       if (next.points) compaction.points = next.points;
       if (next.enabled !== undefined) compaction.enabled = next.enabled;
       store.settings.set("compaction", compaction);

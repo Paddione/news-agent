@@ -91,9 +91,7 @@ export function parseReport(text: string, allowed: string[]): InvestigationRepor
   if (!Array.isArray(parsed.targets)) {
     throw new ReportError("Report must have a targets array");
   }
-  const targets = parsed.targets.filter(
-    (t: any) => typeof t === "string" && allowed.includes(t),
-  );
+  const targets = parsed.targets.filter((t: any) => typeof t === "string" && allowed.includes(t));
 
   if (typeof parsed.reasoning !== "string" || !parsed.reasoning.trim()) {
     throw new ReportError("Report must have a non-empty reasoning string");
@@ -121,18 +119,14 @@ export function renderReport(
 ): string {
   const sourceText = r.source.length
     ? r.source
-        .map(
-          (s) =>
-            `- **${s.claim}**\n${s.evidence.map((e) => `  - ${e}`).join("\n")}`,
-        )
+        .map((s) => `- **${s.claim}**\n${s.evidence.map((e) => `  - ${e}`).join("\n")}`)
         .join("\n")
     : "Keine Quellenangaben.";
 
   const existingItems = r.existing.length
     ? r.existing
         .map(
-          (e) =>
-            `- **${e.project}:** ${e.note}\n${e.paths.map((p) => `  - \`${p}\``).join("\n")}`,
+          (e) => `- **${e.project}:** ${e.note}\n${e.paths.map((p) => `  - \`${p}\``).join("\n")}`,
         )
         .join("\n")
     : "Keine passenden Bestandteile gefunden.";

@@ -13,10 +13,7 @@ import { componentCatalog } from "../news/components.ts";
 import { createDeepResearchTask, deepResearchSetting } from "../news/deep-research.ts";
 import { createImageTask } from "../news/image-task.ts";
 import { createSweepTask } from "../news/sweep-task.ts";
-import {
-  createInvestigateTask,
-  type InvestigateInput,
-} from "../news/investigate.ts";
+import { createInvestigateTask, type InvestigateInput } from "../news/investigate.ts";
 import { repoTools } from "./tools/repo.ts";
 import { askTaste } from "./tools/ask-taste.ts";
 import { completeSweep } from "./tools/complete-sweep.ts";
@@ -249,7 +246,7 @@ export function createAgents(deps: Deps): Agents {
       "news-desk": deskTools,
       "news-researcher": researcherTools,
       "deep-research": deepResearchTools,
-      "investigator": investigatorTools,
+      investigator: investigatorTools,
     },
   };
 }

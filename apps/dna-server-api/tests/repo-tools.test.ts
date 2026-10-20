@@ -106,10 +106,7 @@ test("codeGraph: projects, refresh, search, symbol, overview with stubbed execFi
   });
 
   // project outside allowed throws before any call
-  await assert.rejects(
-    () => graph.search("forbidden-project", "foo"),
-    /forbidden-project/,
-  );
+  await assert.rejects(() => graph.search("forbidden-project", "foo"), /forbidden-project/);
   assert.equal(calls.length, 6);
 });
 
@@ -143,10 +140,7 @@ test("repo tools: wrap graph calls and format errors as tool errors", async () =
   assert.ok(symbolRes.content[0].text.includes("Bar"));
 
   const overviewTool = repoOverview(faux);
-  const overviewRes = await (overviewTool as any).execute(
-    { project: "repo-a" },
-    {} as any,
-  );
+  const overviewRes = await (overviewTool as any).execute({ project: "repo-a" }, {} as any);
   assert.equal(overviewRes.isError, undefined);
   assert.ok(overviewRes.content[0].text.includes("repo-a"));
 

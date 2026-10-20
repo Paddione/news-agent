@@ -841,7 +841,10 @@ try {
   await investigatedChip.waitFor({ timeout: 15000 });
   const targetTag = investigatedChip.locator(".target-tag", { hasText: "news-agent" });
   await targetTag.waitFor({ timeout: 5000 });
-  check(true, "the issue chip has aria-label Open issue #1, investigated and a target tag news-agent");
+  check(
+    true,
+    "the issue chip has aria-label Open issue #1, investigated and a target tag news-agent",
+  );
 
   await issueCard.locator('button[aria-label="Card details"]').click();
   const detailDialog = page.locator(".card-detail");

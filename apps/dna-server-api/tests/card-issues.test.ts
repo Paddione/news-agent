@@ -92,9 +92,7 @@ test("POST /v1/cards/:id/issue: create once, reuse, validate, survive gh failure
     );
     const firstCard = (await s.client.card(a.id)).card;
     assert.ok(firstCard.issue?.investigation);
-    assert.ok(
-      ["queued", "running", "done"].includes(firstCard.issue!.investigation.status),
-    );
+    assert.ok(["queued", "running", "done"].includes(firstCard.issue!.investigation.status));
     const again = await s.client.createIssue(a.id, {});
     assert.equal(again.number, 1);
     const cardIssue = (await s.client.card(a.id)).card.issue;

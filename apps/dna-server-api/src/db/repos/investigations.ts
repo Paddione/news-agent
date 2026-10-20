@@ -129,16 +129,10 @@ export class InvestigationsRepo {
     return this.get(repo, number)!;
   }
 
-  fail(
-    repo: string,
-    number: number,
-    error: string,
-    maxAttempts = 3,
-  ): InvestigationRow {
+  fail(repo: string, number: number, error: string, maxAttempts = 3): InvestigationRow {
     const current = this.get(repo, number);
     const attempts = current ? current.attempts : 1;
-    const nextStatus: InvestigationStatus =
-      attempts >= maxAttempts ? "failed" : "queued";
+    const nextStatus: InvestigationStatus = attempts >= maxAttempts ? "failed" : "queued";
     this.db
       .prepare(
         `UPDATE investigations

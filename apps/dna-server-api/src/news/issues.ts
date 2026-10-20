@@ -110,7 +110,7 @@ export function ghTracker(repo: string, exec: ExecFile = execFile): IssueTracker
       const parsed = JSON.parse(out || "[]") as { number: number; labels?: { name: string }[] }[];
       return parsed.map((item) => ({
         number: item.number,
-        labels: (item.labels ?? []).map((l: any) => (typeof l === "string" ? l : l.name ?? "")),
+        labels: (item.labels ?? []).map((l: any) => (typeof l === "string" ? l : (l.name ?? ""))),
       }));
     },
     async view(number) {
@@ -127,7 +127,7 @@ export function ghTracker(repo: string, exec: ExecFile = execFile): IssueTracker
       return {
         title: parsed.title ?? "",
         body: parsed.body ?? "",
-        labels: (parsed.labels ?? []).map((l: any) => (typeof l === "string" ? l : l.name ?? "")),
+        labels: (parsed.labels ?? []).map((l: any) => (typeof l === "string" ? l : (l.name ?? ""))),
       };
     },
     async comment(number, body) {
@@ -140,26 +140,10 @@ export function ghTracker(repo: string, exec: ExecFile = execFile): IssueTracker
     async addLabels(number, labelsToAdd) {
       if (!labelsToAdd.length) return;
       await ensureLabels(labelsToAdd);
-      await gh([
-        "issue",
-        "edit",
-        String(number),
-        "-R",
-        repo,
-        "--add-label",
-        labelsToAdd.join(","),
-      ]);
+      await gh(["issue", "edit", String(number), "-R", repo, "--add-label", labelsToAdd.join(",")]);
     },
     async removeLabel(number, label) {
-      await gh([
-        "issue",
-        "edit",
-        String(number),
-        "-R",
-        repo,
-        "--remove-label",
-        label,
-      ]);
+      await gh(["issue", "edit", String(number), "-R", repo, "--remove-label", label]);
     },
   };
 }
