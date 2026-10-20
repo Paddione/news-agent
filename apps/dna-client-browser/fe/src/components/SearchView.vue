@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A search, keyword or url tab: the same search the agent's open_tab runs, in arrival order like News.
+// A search, keyword, url or group tab: the same search the agent's open_tab runs, in arrival order like News.
 // Votes update through the feed model; new news reruns the search.
 import { computed, shallowRef, watch } from "vue";
 import type { Card, TabBy } from "@dna/sdk";
@@ -9,7 +9,7 @@ import FeedRow from "./FeedRow.vue";
 import LoadingRows from "./LoadingRows.vue";
 
 const props = defineProps<{ by: TabBy; value: string }>();
-const WHAT = { search: "matching", keyword: "about", url: "linking to" };
+const WHAT = { search: "matching", keyword: "about", url: "linking to", group: "in group" };
 const found = shallowRef<Card[]>();
 async function run() {
   const cards = await attempt(() => api.search({ q: props.value, by: props.by, limit: 1000 }));

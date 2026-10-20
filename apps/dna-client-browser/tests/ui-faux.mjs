@@ -121,8 +121,20 @@ fixtureDb
   .prepare("UPDATE story_memberships SET story_id=? WHERE item_id=?")
   .run(storyId, related[1].itemId);
 fixtureDb.prepare("INSERT INTO story_items VALUES (?, ?)").run(storyId, related[1].itemId);
+const groupedCard = fixtureCards.find((c) => !related.some((r) => r.id === c.id));
+check(!!groupedCard, "a fixture card outside the story is available for the group chip");
+fixtureDb
+  .prepare("UPDATE items SET matched_topic=? WHERE id=?")
+  .run("ui grouped topic", groupedCard.itemId);
 fixtureDb.exec("COMMIT");
 fixtureDb.close();
+// A topic group over the first fixture card's topic: its card shows the group chip.
+const harnesses = await call("POST", "/v1/topic-groups", { name: "agent-harnesses", weight: 1.5 });
+await call("POST", "/v1/keywords", {
+  kind: "topic",
+  term: "ui grouped topic",
+  groupId: harnesses.id,
+});
 
 const browser = await chromium.launch({ channel: "chrome", headless: !process.env.HEADED });
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
@@ -747,6 +759,28 @@ try {
   await composer.press("Enter");
   await page.locator('[data-keyword="agent queues"]').waitFor();
   check(true, "the agent's keyword edits show up live in Settings");
+  // ---------------------------------------------------------------- settings: topic groups
+  await page.locator('[data-group="agent-harnesses"] [data-keyword="ui grouped topic"]').waitFor();
+  check(true, "topics are listed under their group's header");
+  await page.getByLabel("Add a topic group").fill("agent-ops");
+  await page.getByRole("button", { name: "Add topic group" }).click();
+  await page.locator('[data-group="agent-ops"]').waitFor();
+  await page.getByLabel("Group of agent queues").selectOption({ label: "agent-ops" });
+  await page.locator('[data-group="agent-ops"] [data-keyword="agent queues"]').waitFor();
+  await page.getByLabel("Weight of the agent-ops group").evaluate((el) => {
+    el.value = "0.8";
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await page.getByRole("button", { name: "Turn off the agent-ops group" }).click();
+  await page.locator('[data-group="agent-ops"].off').waitFor();
+  const ops = (await call("GET", "/v1/topic-groups")).find((g) => g.name === "agent-ops");
+  const queues = (await call("GET", "/v1/keywords?kind=topic")).find(
+    (k) => k.term === "agent queues",
+  );
+  check(
+    ops?.weight === 0.8 && ops.enabled === false && queues?.groupId === ops.id,
+    "topic groups: add, weight, toggle and a topic's group reach the API",
+  );
   await page.getByRole("button", { name: "Sources", exact: true }).click();
   const simonWeight = page.getByLabel("Weight of Simon Willison");
   await simonWeight.evaluate((el) => {
@@ -776,6 +810,19 @@ try {
   await page.screenshot({ path: join(shots, "settings.png") });
   await cleanText("settings");
   await page.getByRole("button", { name: "Close settings" }).click();
+
+  // ---------------------------------------------------------------- group chip and group tab
+  const chip = page
+    .locator(`[data-card-id="${groupedCard.id}"]`)
+    .getByRole("button", { name: "Open the agent-harnesses group" })
+    .first();
+  await chip.click();
+  await page
+    .locator(`[data-search="group-agent-harnesses"] [data-card-id="${groupedCard.id}"]`)
+    .first()
+    .waitFor();
+  check(true, "a card's group chip opens the group tab with the group's cards");
+  await page.getByRole("button", { name: "Close the agent-harnesses group" }).click();
 
   // ---------------------------------------------------------------- layout
   await collectCaps();
@@ -873,6 +920,7 @@ try {
 } catch (error) {
   await page.screenshot({ path: join(shots, "failure.png") }).catch(() => {});
   console.error(error.message);
+  if (errors.length) console.error(`page errors:\n${errors.join("\n")}`);
   console.error(`api log tail:\n${api.log().slice(-2000)}`);
   process.exitCode = 1;
 } finally {

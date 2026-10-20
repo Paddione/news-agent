@@ -2,7 +2,7 @@
 // News and its tabs. News is always the first tab; timelines open from a card's chip, searches from the search box
 // or the agent's open_tab. A card you voted down leaves News (search and timeline tabs still show it).
 import { computed } from "vue";
-import { GitCommitVertical, Hash, Link, Newspaper, Search, X } from "@lucide/vue";
+import { GitCommitVertical, Hash, Layers, Link, Newspaper, Search, X } from "@lucide/vue";
 import { closeTab, layout, tabKey, type FeedTab } from "../client/layout";
 import { feed, feedState, loaded } from "../client/store";
 import BottomPane from "./BottomPane.vue";
@@ -12,7 +12,13 @@ import SearchBox from "./SearchBox.vue";
 import SearchView from "./SearchView.vue";
 import TimelineView from "./TimelineView.vue";
 
-const ICONS = { timeline: GitCommitVertical, search: Search, keyword: Hash, url: Link };
+const ICONS = {
+  timeline: GitCommitVertical,
+  search: Search,
+  keyword: Hash,
+  url: Link,
+  group: Layers,
+};
 const counts = computed(() => {
   const out = new Map<number, number>();
   for (const c of feedState.value.news)
