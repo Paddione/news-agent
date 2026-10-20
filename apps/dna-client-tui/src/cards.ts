@@ -1,6 +1,14 @@
 // Cards as text blocks. H/F/S badges use symbols, never punctuation: ⚡ Signal 91  ✔ Facts 84  ▲ Hype 7, ranked.
 import { wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import { ago, cleanText, type Card, type HfsCategory, type HfsScores } from "@dna/sdk";
+import {
+  ago,
+  cleanText,
+  figureGroups,
+  figuresOf,
+  type Card,
+  type HfsCategory,
+  type HfsScores,
+} from "@dna/sdk";
 import { cut } from "./render.ts";
 import { c } from "./theme.ts";
 
@@ -49,6 +57,29 @@ const list = (props: Record<string, unknown>, key: string): string[] => {
 
 /** The component's body as plain lines, before wrapping. */
 export function cardBody(card: Card): string[] {
+  return [...componentBody(card), ...figureLines(card.props)];
+}
+
+/** Numbers from the article: label, value and unit aligned; a bar for each value in a compared group. */
+export function figureLines(props: Record<string, unknown>): string[] {
+  const figures = figuresOf(props);
+  if (!figures.length) return [];
+  const { bars } = figureGroups(figures);
+  const barOf = new Map<unknown, number>();
+  for (const g of bars) {
+    const max = Math.max(...g.rows.map((r) => r.value));
+    for (const r of g.rows)
+      barOf.set(r, max > 0 ? Math.max(1, Math.round((r.value / max) * 20)) : 1);
+  }
+  const width = Math.max(...figures.map((f) => cleanText(f.label).length));
+  return figures.map((f) => {
+    const value = `${f.value}${f.unit ? ` ${f.unit}` : ""}`;
+    const bar = barOf.has(f) ? `  ${c.accent("▇".repeat(barOf.get(f)!))}` : "";
+    return `  ${cleanText(f.label).padEnd(width)}  ${c.bold(value)}${bar}`;
+  });
+}
+
+function componentBody(card: Card): string[] {
   const p = card.props;
   const title = str(p, "title") || cleanText(card.title);
   switch (card.component) {

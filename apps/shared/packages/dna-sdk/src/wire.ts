@@ -1,4 +1,6 @@
 // pi-ai and pi-durable JSON shapes as they cross the wire (watchEvents frames, entries, usage).
+import type { HfsCategory } from "./components.ts";
+
 export interface WireText {
   type: "text";
   text: string;
@@ -179,4 +181,40 @@ export interface InboxItem {
   id: number;
   mode: "steer" | "followUp" | "write";
   content?: string;
+}
+
+/** The two labels the reader can leave; the same union as the judge's H/F/S categories. */
+export type HfsName = HfsCategory;
+
+/** One sweep's funnel, the counts the dashboard adds up per window. */
+export interface FunnelCounts {
+  gathered: number;
+  kept: number;
+  duplicates: number;
+  candidates: number;
+  presented: number;
+}
+
+/** The dashboard's aggregates over a window of whole UTC days. */
+export interface Stats {
+  window: { from: string; to: string; days: number };
+  topics: { topic: string; day: string; count: number; avgAttention: number | null }[];
+  funnel: { total: FunnelCounts; sweeps: ({ id: number; startedAt: string } & FunnelCounts)[] };
+  hfs: {
+    byDay: { day: string; hype: number; facts: number; signal: number; n: number }[];
+    bySource: { source: string; hype: number; facts: number; signal: number; n: number }[];
+    primary: { category: HfsName; count: number }[];
+  };
+  feedback: {
+    byDay: { day: string; more: number; less: number }[];
+    byJudge: {
+      judge: HfsName;
+      n: number;
+      humanHype: number;
+      humanFacts: number;
+      humanSignal: number;
+      hits: number;
+    }[];
+    agreement: number | null;
+  };
 }

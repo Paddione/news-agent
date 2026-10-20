@@ -9,6 +9,7 @@ import { clean } from "../../client/text";
 import { now, referenceInChat, ui } from "../../client/store";
 import FeedbackBar from "../FeedbackBar.vue";
 import HfsPill from "../HfsPill.vue";
+import FiguresBlock from "./FiguresBlock.vue";
 import { cardComponent } from "./registry";
 
 const props = defineProps<{ card: Card }>();
@@ -115,6 +116,7 @@ const image = computed(() =>
       </div>
       <div class="card-main" :class="{ linked: !!card.url }" @click="openFromBody">
         <component :is="body" :card="card" />
+        <FiguresBlock :card-props="card.props" compact />
       </div>
       <div class="card-foot">
         <HfsPill :hfs="card.hfs" />

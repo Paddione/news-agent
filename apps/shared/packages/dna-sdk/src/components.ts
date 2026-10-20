@@ -61,3 +61,49 @@ export const COMPONENT_SPECS: Record<CardComponent, ComponentSpec> = {
   },
   quote: { use: "one striking line", required: ["quote", "speaker"], rule: "none" },
 };
+
+/** A number the agent copied from the article. The server keeps only numbers it finds in the source text. */
+export interface Figure {
+  label: string;
+  value: number;
+  unit?: string;
+  group?: string;
+}
+export const FIGURES_MAX = 6;
+export const FIGURE_LABEL_MAX = 60;
+
+export function figuresOf(props: Record<string, unknown>): Figure[] {
+  const raw = props.figures;
+  if (!Array.isArray(raw)) return [];
+  const out: Figure[] = [];
+  for (const e of raw) {
+    if (!e || typeof e !== "object") continue;
+    const { label, value, unit, group } = e as Record<string, unknown>;
+    if (typeof label !== "string" || !label || typeof value !== "number" || !Number.isFinite(value))
+      continue;
+    out.push({
+      label,
+      value,
+      ...(typeof unit === "string" && unit ? { unit } : {}),
+      ...(typeof group === "string" && group ? { group } : {}),
+    });
+    if (out.length === FIGURES_MAX) break;
+  }
+  return out;
+}
+
+export function figureGroups(figures: Figure[]): {
+  bars: { key: string; unit?: string; rows: Figure[] }[];
+  rest: Figure[];
+} {
+  const byKey = new Map<string, Figure[]>();
+  for (const f of figures) {
+    const key = `${f.group ?? ""}|${f.unit ?? ""}`;
+    byKey.set(key, [...(byKey.get(key) ?? []), f]);
+  }
+  const bars = [...byKey]
+    .filter(([, rows]) => rows.length >= 2)
+    .map(([key, rows]) => ({ key, ...(rows[0].unit ? { unit: rows[0].unit } : {}), rows }));
+  const inBars = new Set(bars.flatMap((b) => b.rows));
+  return { bars, rest: figures.filter((f) => !inBars.has(f)) };
+}

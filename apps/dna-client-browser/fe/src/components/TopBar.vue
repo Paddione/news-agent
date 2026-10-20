@@ -4,6 +4,7 @@ import {
   Activity,
   Clock,
   Coins,
+  LayoutDashboard,
   LoaderCircle,
   PanelLeft,
   PanelRight,
@@ -114,6 +115,9 @@ const spend = computed(() => agentState.value?.spend);
         @click="go('/executions')"
       >
         <Activity :size="16" /><span>Executions</span>
+      </button>
+      <button class="bar-button" aria-label="Dashboard" title="Dashboard" @click="go('/dashboard')">
+        <LayoutDashboard :size="16" />
       </button>
       <button class="bar-button" aria-label="Settings" title="Settings" @click="ui.settings = true">
         <SlidersHorizontal :size="16" /><span>Settings</span>

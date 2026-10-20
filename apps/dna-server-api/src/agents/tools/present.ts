@@ -6,6 +6,7 @@ import type { Task, ToolExecutionApi } from "@earendil-works/pi-durable";
 import type { Context } from "@earendil-works/chord";
 import { defineAppTool, onceInCommit, toolError, toolText } from "@dna/durable-agent";
 import { NEWS_COMPONENTS, type Card, type HfsScores } from "@dna/sdk";
+import { droppedNote, evidenceText, verifyFigures } from "../../news/figures.ts";
 import type { Deps } from "../../deps.ts";
 import type { Item } from "../../db/repos/news.ts";
 import { StoryMatcher } from "../../news/stories.ts";
@@ -13,7 +14,8 @@ import { checkComponent } from "../../news/components.ts";
 import type { ImageInput } from "../../news/image-task.ts";
 
 const PROPS_HELP =
-  "props holds the component's fields as short phrases: title, summary, dek, action, why, claim, verdict, evidence (array of urls), reality_check, name, version, changes (array), takes (array), quote, speaker, body, events (array of { date, text }), left, right.";
+  "props holds the component's fields as short phrases: title, summary, dek, action, why, claim, verdict, evidence (array of urls), reality_check, name, version, changes (array), takes (array), quote, speaker, body, events (array of { date, text }), left, right." +
+  " Optional on every component: figures, an array of at most 6 { label, value, unit?, group? } with value a number copied exactly from the article (benchmark scores, prices, counts). Numbers not found in the article are dropped.";
 
 const scoreLine = (card: Card) =>
   card.hfs
@@ -43,7 +45,7 @@ async function imageFor(
 ): Promise<number> {
   const existing = item ? await deps.images.resolve(item) : undefined;
   if (existing) return existing;
-  return deps.images.pending(item?.id, deps.images.prompt({ title, summary }));
+  return deps.images.fallback(item, { title, summary });
 }
 
 async function startImage(
@@ -150,11 +152,25 @@ export function presentNews(deps: Deps, imageTask: Task<ImageInput, any, any, ob
       const summary = String(
         args.props.summary ?? args.props.dek ?? args.props.why ?? item.excerpt ?? "",
       );
+      const cached = item.cacheId ? deps.store.sources.cachedById(item.cacheId) : undefined;
+      const figures = verifyFigures(
+        args.props.figures,
+        evidenceText({
+          contentMd: cached?.contentMd,
+          excerpt: item.excerpt,
+          findings: deps.store.news.findings(item.id),
+        }),
+      );
+      const props: Record<string, unknown> = { ...args.props };
+      if (figures.kept.length) props.figures = figures.kept;
+      else delete props.figures;
+      if (figures.dropped.length)
+        deps.log.info("card.figures_dropped", { itemId: item.id, dropped: figures.dropped });
       const imageId = await imageFor(deps, item, title, summary);
       const { card } = deps.store.news.addCard({
         kind: "news",
         component: args.component,
-        props: args.props,
+        props,
         itemId: item.id,
         imageId,
         hfs,
@@ -180,9 +196,10 @@ export function presentNews(deps: Deps, imageTask: Task<ImageInput, any, any, ob
         sweepId: item.sweepId,
         conversationId: api.conversationId,
       });
-      return toolText(`Presented card ${card.id} (${card.component}, ${scoreLine(card)}).`, {
-        cardId: card.id,
-      });
+      return toolText(
+        `Presented card ${card.id} (${card.component}, ${scoreLine(card)}).${droppedNote(figures.dropped)}`,
+        { cardId: card.id },
+      );
     },
   });
 }

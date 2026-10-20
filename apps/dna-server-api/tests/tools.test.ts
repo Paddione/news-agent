@@ -428,3 +428,59 @@ test("hyper_fetch reads a long saved scrape chunk by chunk to the end", async ()
   assert.equal(past.isError, true);
   assert.match(past.text, /has 3 chunks/);
 });
+
+test("present_news keeps only figures the article backs and names the dropped ones", async () => {
+  const doc = app.store.sources.cache({
+    url: "https://bench.example.dev/swe",
+    title: "New model tops SWE-bench",
+    excerpt: "Scores 72.5% on SWE-bench.",
+    contentMd:
+      "The model scores 72.5% on SWE-bench Verified, up from 61% for the previous release in 2025.",
+    fetchVia: "feed",
+    ttlMinutes: 60,
+  });
+  const id = app.store.news.upsertItem({
+    cacheId: doc.id,
+    url: doc.url,
+    title: doc.title!,
+    sourceName: "bench.example.dev",
+    publishedAt: "2026-10-19T10:00:00Z",
+  }).item.id;
+  const r = await callTool(app.main, "present_news", {
+    item_id: id,
+    component: "brief",
+    props: {
+      title: "New model tops SWE-bench",
+      summary: "72.5 percent",
+      figures: [
+        { label: "New model", value: 72.5, unit: "%", group: "swe" },
+        { label: "Previous", value: 61, unit: "%", group: "swe" },
+        { label: "Invented", value: 5, unit: "%" },
+      ],
+    },
+  });
+  assert.equal(r.isError, false, r.text);
+  assert.match(r.text, /Dropped figures: Invented 5 \(unsupported\)/);
+  const card = app.store.news.cardForItem(id)!;
+  assert.deepEqual(card.props.figures, [
+    { label: "New model", value: 72.5, unit: "%", group: "swe" },
+    { label: "Previous", value: 61, unit: "%", group: "swe" },
+  ]);
+});
+
+test("present_news on an item without any source text drops figures but still presents", async () => {
+  const id = app.store.news.upsertItem({
+    url: "https://bare.example.dev/x",
+    title: "Bare item",
+    sourceName: "bare.example.dev",
+    publishedAt: "2026-10-19T10:00:00Z",
+  }).item.id;
+  const r = await callTool(app.main, "present_news", {
+    item_id: id,
+    component: "brief",
+    props: { title: "Bare", summary: "s", figures: [{ label: "x", value: 3 }] },
+  });
+  assert.equal(r.isError, false, r.text);
+  assert.match(r.text, /x 3 \(no_evidence\)/);
+  assert.equal(app.store.news.cardForItem(id)!.props.figures, undefined);
+});

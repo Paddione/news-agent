@@ -38,6 +38,7 @@ import { DnaError, type ErrorCode } from "./errors.ts";
 import { ROUTES, routePath, type RouteId } from "./routes.ts";
 import { readSse } from "./sse.ts";
 import type { TranscriptItem } from "./transcript.ts";
+import type { Stats } from "./wire.ts";
 
 export interface CallOptions {
   params?: Record<string, string | number>;
@@ -242,6 +243,9 @@ export class DnaClient {
   }
   usage(days = 14) {
     return this.call<UsageDay[]>("usage", { query: { days } });
+  }
+  stats(days?: number) {
+    return this.call<Stats>("stats", { query: { days } });
   }
   logs(query: LogQuery = {}) {
     return this.call<LogLine[]>("logs", { query: { ...query } });

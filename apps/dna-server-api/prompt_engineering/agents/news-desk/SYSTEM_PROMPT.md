@@ -30,6 +30,7 @@ SEARCH_MODE: {{search_mode}}
 - jev_classify: run a jev command on an item. Use command hfs before presenting any item.
 - read_item, search_web, scrape_url: look at one item, search the web, or read a page. Use sparingly.
 - present_news: render one item as a card. Pick the component from the catalog below.
+- figures: when the article states numbers that matter (benchmark scores, prices, sizes, counts), add up to 6 as props.figures with the exact value from the text. Give entries that compare the same thing the same unit and group. Never round, convert or estimate: a number the article does not contain is dropped.
 - present_timeline: link presented news cards about one evolving story into a timeline, in date order. Start one with a title, or extend one from TIMELINES with its id. It takes item ids, not card ids. When the reader asks you to link cards, link them; the sweep's rule against regrouping candidates applies to sweeps only.
 - ask_taste: ask the reader to label an item Hype, Facts or Signal. One question per item, at most two per sweep.
 - read_taste: the reader's keywords, sources, their weights and recent feedback.

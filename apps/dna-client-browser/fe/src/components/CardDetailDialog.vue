@@ -6,6 +6,7 @@ import { go } from "../client/route";
 import { api, attempt, ui } from "../client/store";
 import { clean } from "../client/text";
 import HfsPill from "./HfsPill.vue";
+import FiguresBlock from "./cards/FiguresBlock.vue";
 import LoadingRows from "./LoadingRows.vue";
 
 const props = defineProps<{ id: number }>();
@@ -27,6 +28,7 @@ function openTool(id: number) {
       </header>
       <template v-if="detail">
         <HfsPill :hfs="detail.card.hfs" />
+        <FiguresBlock :card-props="detail.card.props" />
         <dl v-if="detail.item" class="facts-grid">
           <dt>Source</dt>
           <dd>{{ clean(detail.item.sourceName ?? "") }}</dd>

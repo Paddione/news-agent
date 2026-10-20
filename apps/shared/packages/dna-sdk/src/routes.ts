@@ -242,6 +242,12 @@ export const ROUTES = {
     summary: "One tool call with timings, tokens, cost and paid calls",
   },
   usage: { method: "GET", path: "/v1/usage", scope: "read", summary: "Per day totals" },
+  stats: {
+    method: "GET",
+    path: "/v1/stats",
+    scope: "read",
+    summary: "Dashboard aggregates over 1 to 30 days: topics, funnel, H/F/S, judge agreement",
+  },
   logs: {
     method: "GET",
     path: "/v1/logs",

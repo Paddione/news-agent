@@ -15,6 +15,7 @@ import { sourceRoutes } from "./routes/sources.ts";
 import { tasteRoutes } from "./routes/taste.ts";
 import type { Handlers } from "./routes/types.ts";
 import { scheduleRoutes } from "./routes/schedule.ts";
+import { statsRoutes } from "./routes/stats.ts";
 import { workflowRoutes } from "./routes/workflows.ts";
 import type { App } from "./runtime.ts";
 import { StreamHub } from "./sse.ts";
@@ -33,6 +34,7 @@ export function createHttpApp(app: App) {
     ...agentRoutes(deps),
     ...executionRoutes(deps),
     ...logRoutes(deps),
+    ...statsRoutes(deps),
   };
   const http = express();
   http.disable("x-powered-by");

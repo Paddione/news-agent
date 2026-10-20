@@ -2036,3 +2036,155 @@ a.source:hover {
   gap: 12px;
   padding: 18px var(--s2);
 }
+
+/* Viz: shared chart parts */
+.viz {
+  display: block;
+  max-width: 100%;
+}
+.viz-label {
+  font-size: 12px;
+  fill: var(--muted);
+  color: var(--muted);
+}
+.viz-value {
+  font-size: 12px;
+  fill: var(--text);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.viz-heat-grid {
+  display: grid;
+  gap: 2px;
+  align-items: center;
+}
+.viz-heat-col {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.viz-heat-cell {
+  height: 18px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}
+.viz-funnel-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin: 3px 0;
+}
+.viz-funnel-bar {
+  height: 12px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.figures-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.figure-chip {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.figure-chip b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.figures-full {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+.figures-table th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--muted);
+  padding-right: 12px;
+}
+.figures-table td {
+  font-variant-numeric: tabular-nums;
+}
+.dashboard {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: auto;
+  background: var(--bg);
+  padding: 16px;
+}
+.dashboard-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.dashboard-head h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 18px;
+}
+.dashboard-window button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 12px;
+}
+.dash-tile {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  min-width: 0;
+}
+.dash-tile h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.dash-empty,
+.dash-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+.dash-note a {
+  margin-left: 6px;
+}
+.dash-table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.dash-table th,
+.dash-table td {
+  text-align: left;
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.dash-table td.signal {
+  color: var(--signal);
+}
+.dash-table td.facts {
+  color: var(--facts);
+}
+.dash-table td.hype {
+  color: var(--hype);
+}
+@media (max-width: 520px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -69,7 +69,10 @@ export const CAPABILITIES = {
     summary: "Tool calls with timings, tokens, cost and context",
     routes: ["executions.toolCalls", "executions.toolCall"],
   },
-  usage: { summary: "Per day cost, tokens, jev calls and Firecrawl credits", routes: ["usage"] },
+  usage: {
+    summary: "Per day cost, tokens, jev calls and credits, and the dashboard aggregates",
+    routes: ["usage", "stats"],
+  },
   logs: { summary: "Tail the logs with filters", routes: ["logs"] },
 } as const satisfies Record<string, Capability>;
 
