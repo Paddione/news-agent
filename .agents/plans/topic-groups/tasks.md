@@ -1,7 +1,7 @@
 ---
 title: Topic groups with hand-set group weights
 domains: [dna-server-api, dna-sdk, dna-client-browser]
-status: staged
+status: completed
 ---
 
 # topic-groups — Implementation Plan
