@@ -58,7 +58,7 @@ test("POST /v1/cards/:id/issue: create once, reuse, validate, survive gh failure
   const fail = join(bin, "FAIL");
   writeFileSync(
     join(bin, "gh"),
-    `#!/bin/sh\ncat >/dev/null\n[ "$1" = label ] && exit 0\nif [ -e "${fail}" ]; then echo "HTTP 401: Bad credentials" >&2; exit 1; fi\nn=$(($(cat "${bin}/n" 2>/dev/null || echo 0) + 1)); echo $n > "${bin}/n"\necho "https://github.com/Paddione/dotfiles/issues/$n"\n`,
+    `#!/bin/sh\ncat >/dev/null\n[ "$1" = label ] && exit 0\nif [ "$1" = issue ] && [ "$2" = list ]; then echo "[]"; exit 0; fi\nif [ "$1" = issue ] && [ "$2" = view ]; then echo '{"title":"Test Issue","body":"Test body"}'; exit 0; fi\nif [ "$1" = issue ] && [ "$2" = comment ]; then echo "https://github.com/Paddione/dotfiles/issues/1#issuecomment-1"; exit 0; fi\nif [ "$1" = issue ] && [ "$2" = edit ]; then exit 0; fi\nif [ -e "${fail}" ]; then echo "HTTP 401: Bad credentials" >&2; exit 1; fi\nn=$(($(cat "${bin}/n" 2>/dev/null || echo 0) + 1)); echo $n > "${bin}/n"\necho "https://github.com/Paddione/dotfiles/issues/$n"\n`,
   );
   chmodSync(join(bin, "gh"), 0o755);
   const s = await bootServer({
@@ -90,12 +90,15 @@ test("POST /v1/cards/:id/issue: create once, reuse, validate, survive gh failure
       { repo: first.repo, number: first.number, note: first.note },
       { repo: "Paddione/dotfiles", number: 1, note: "check our hooks" },
     );
+    const firstCard = (await s.client.card(a.id)).card;
+    assert.ok(firstCard.issue?.investigation);
+    assert.ok(["queued", "running", "done"].includes(firstCard.issue!.investigation.status));
     const again = await s.client.createIssue(a.id, {});
     assert.equal(again.number, 1);
-    assert.deepEqual((await s.client.card(a.id)).card.issue, {
-      number: 1,
-      url: "https://github.com/Paddione/dotfiles/issues/1",
-    });
+    const cardIssue = (await s.client.card(a.id)).card.issue;
+    assert.equal(cardIssue?.number, 1);
+    assert.equal(cardIssue?.url, "https://github.com/Paddione/dotfiles/issues/1");
+    assert.ok(cardIssue?.investigation);
     assert.equal((await s.client.createIssue(b.id, {})).number, 2);
   } finally {
     await s.cleanup();
@@ -110,4 +113,31 @@ test("the tracker defaults to faux in fixture search mode", () => {
     loadConfig([], { DNA_SEARCH_MODE: "web", DNA_ISSUE_TRACKER: "faux" }).issueTracker,
     "faux",
   );
+});
+
+test("POST /v1/cards/:id/issue: with DNA_INVESTIGATE=off leaves no investigation row", async () => {
+  const bin = mkdtempSync(join(tmpdir(), "gh-stub-"));
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/bin/sh\ncat >/dev/null\n[ "$1" = label ] && exit 0\necho "https://github.com/Paddione/dotfiles/issues/99"\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const s = await bootServer({
+    FIRECRAWL_API_KEY: "",
+    DNA_ISSUE_TRACKER: "gh",
+    DNA_INVESTIGATE: "off",
+    PATH: `${bin}:${process.env.PATH}`,
+  });
+  try {
+    const started = await s.cron.newsSweep({ requestId: "issues:off:1" });
+    await settledSweep(s.client, started.data.sweep!.id);
+    const [a] = (await s.client.feed()).items;
+    const issue = await s.client.createIssue(a.id, {});
+    assert.equal(issue.number, 99);
+    const cardA = (await s.client.card(a.id)).card;
+    assert.equal(cardA.issue?.investigation, undefined);
+  } finally {
+    await s.cleanup();
+    rmSync(bin, { recursive: true, force: true });
+  }
 });

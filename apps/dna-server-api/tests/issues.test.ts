@@ -187,3 +187,92 @@ test("issueFor: every card kind brings its own fields", () => {
   );
   assert.ok(hype.body.includes("reality text"), hype.body);
 });
+
+test("ghTracker: list, view, comment, addLabels and removeLabel", async () => {
+  const calls: { file: string; args: string[]; input?: string }[] = [];
+  const exec: ExecFile = async (file, args, input) => {
+    calls.push({ file, args, input });
+    if (args[0] === "label" && args[1] === "create") return { stdout: "", stderr: "", code: 0 };
+    if (args[0] === "issue" && args[1] === "list") {
+      return {
+        stdout: JSON.stringify([
+          { number: 153, labels: [{ name: "news-card" }, { name: "investigated" }] },
+        ]),
+        stderr: "",
+        code: 0,
+      };
+    }
+    if (args[0] === "issue" && args[1] === "view") {
+      return {
+        stdout: JSON.stringify({
+          title: "Issue 153",
+          body: "Issue 153 body",
+          labels: [{ name: "news-card" }],
+        }),
+        stderr: "",
+        code: 0,
+      };
+    }
+    if (args[0] === "issue" && args[1] === "comment") {
+      return {
+        stdout: "https://github.com/Paddione/dotfiles/issues/153#issuecomment-42\n",
+        stderr: "",
+        code: 0,
+      };
+    }
+    if (args[0] === "issue" && args[1] === "edit") {
+      return { stdout: "", stderr: "", code: 0 };
+    }
+    return { stdout: "", stderr: "", code: 0 };
+  };
+
+  const tracker = ghTracker("Paddione/dotfiles", exec);
+  const list = await (tracker as any).list("news-card");
+  assert.deepEqual(list, [{ number: 153, labels: ["news-card", "investigated"] }]);
+
+  const view = await (tracker as any).view(153);
+  assert.deepEqual(view, { title: "Issue 153", body: "Issue 153 body", labels: ["news-card"] });
+
+  const commentUrl = await (tracker as any).comment(153, "Report text");
+  assert.equal(commentUrl, "https://github.com/Paddione/dotfiles/issues/153#issuecomment-42");
+
+  await (tracker as any).addLabels(153, ["investigated", "target:news-agent"]);
+  await (tracker as any).removeLabel(153, "investigating");
+
+  assert.deepEqual(
+    calls.map((c) => [c.file, ...c.args].join(" ")),
+    [
+      "gh issue list -R Paddione/dotfiles --label news-card --state open --json number,labels --limit 100",
+      "gh issue view 153 -R Paddione/dotfiles --json title,body,labels",
+      "gh issue comment 153 -R Paddione/dotfiles --body-file -",
+      "gh label create investigated -R Paddione/dotfiles --force",
+      "gh label create target:news-agent -R Paddione/dotfiles --force",
+      "gh issue edit 153 -R Paddione/dotfiles --add-label investigated,target:news-agent",
+      "gh issue edit 153 -R Paddione/dotfiles --remove-label investigating",
+    ],
+  );
+  assert.equal(calls[2].input, "Report text");
+});
+
+test("fauxTracker: in-memory list, view, comment, addLabels, removeLabel", async () => {
+  const faux = fauxTracker("Paddione/dotfiles");
+  await faux.create({ title: "Issue 1", body: "Body 1", labels: ["news-card"] });
+  await faux.create({ title: "Issue 2", body: "Body 2", labels: ["other"] });
+
+  const list = await (faux as any).list("news-card");
+  assert.deepEqual(list, [{ number: 1, labels: ["news-card"] }]);
+
+  const view = await (faux as any).view(1);
+  assert.deepEqual(view, { title: "Issue 1", body: "Body 1", labels: ["news-card"] });
+
+  const commentUrl = await (faux as any).comment(1, "comment 1");
+  assert.ok(commentUrl.includes("/issues/1#issuecomment-1"));
+
+  await (faux as any).addLabels(1, ["investigated", "target:dotfiles"]);
+  const updated = await (faux as any).view(1);
+  assert.deepEqual(updated.labels, ["news-card", "investigated", "target:dotfiles"]);
+
+  await (faux as any).removeLabel(1, "news-card");
+  const removed = await (faux as any).view(1);
+  assert.deepEqual(removed.labels, ["investigated", "target:dotfiles"]);
+});

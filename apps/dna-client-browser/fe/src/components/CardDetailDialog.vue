@@ -17,6 +17,11 @@ function openTool(id: number) {
   close();
   go(`/executions/tool/${id}`);
 }
+function shortTarget(target: string): string {
+  if (target === "home-patrick") return "dotfiles";
+  if (target.startsWith("home-patrick-")) return target.slice("home-patrick-".length);
+  return target;
+}
 </script>
 
 <template>
@@ -66,6 +71,31 @@ function openTool(id: number) {
             </li>
           </ul>
         </div>
+        <template v-if="detail.card.issue?.investigation">
+          <h3>Investigation</h3>
+          <dl class="facts-grid investigation-grid">
+            <dt>Status</dt>
+            <dd>{{ detail.card.issue.investigation.status }}</dd>
+            <dt v-if="detail.card.issue.investigation.targets?.length">Targets</dt>
+            <dd v-if="detail.card.issue.investigation.targets?.length">
+              {{ detail.card.issue.investigation.targets.map(shortTarget).join(", ") }}
+            </dd>
+            <dt v-if="detail.card.issue.investigation.model">Model</dt>
+            <dd v-if="detail.card.issue.investigation.model">
+              {{ detail.card.issue.investigation.model }}
+            </dd>
+            <dt v-if="detail.card.issue.investigation.route">Route</dt>
+            <dd v-if="detail.card.issue.investigation.route">
+              {{ detail.card.issue.investigation.route }}
+            </dd>
+            <dt v-if="detail.card.issue.investigation.commentUrl">Report</dt>
+            <dd v-if="detail.card.issue.investigation.commentUrl">
+              <a :href="detail.card.issue.investigation.commentUrl" target="_blank" rel="noopener"
+                >Report comment</a
+              >
+            </dd>
+          </dl>
+        </template>
         <footer>
           <a
             v-if="detail.card.issue"

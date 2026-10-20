@@ -1,5 +1,6 @@
 // POST /v1/workflows/news-sweep (cron token only) and the sweep reads.
 import { startNewsSweep } from "../news/sweep.ts";
+import { investigateCatchup } from "../news/investigate.ts";
 import { int, notFound, optInt } from "../errors.ts";
 import { MAX_CARDS } from "../news/schedule.ts";
 import { bodyOf, bool, num, oneOf, str, type Handlers, type RouteDeps } from "./types.ts";
@@ -25,6 +26,11 @@ export function workflowRoutes({
         scheduled,
         cards,
       });
+      try {
+        await investigateCatchup(app);
+      } catch (err: any) {
+        app.log.warn("investigate.catchup_failed", { error: err.message });
+      }
       if (result.status === "not_due") return res.status(200).json(result);
       if (result.status === "replay") res.set("Idempotent-Replay", "true");
       res

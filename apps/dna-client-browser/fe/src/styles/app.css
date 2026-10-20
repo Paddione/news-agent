@@ -591,6 +591,36 @@ h4 {
   background: var(--accent);
   color: #121212;
 }
+.issue-chip.status-queued {
+  border-color: var(--muted);
+  color: var(--muted);
+  background: transparent;
+}
+.issue-chip.status-running {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.issue-chip.status-done {
+  border-color: var(--ok);
+  color: var(--ok);
+  background: rgb(74 222 128 / 0.1);
+}
+.issue-chip.status-failed {
+  border-color: var(--bad);
+  color: var(--bad);
+  background: rgb(248 113 113 / 0.1);
+}
+.issue-chip .target-tag {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-family: var(--mono);
+  margin-left: 2px;
+}
 .card-main {
   flex: 1;
   min-height: 0;

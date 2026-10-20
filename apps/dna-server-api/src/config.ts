@@ -58,6 +58,12 @@ export interface Config {
   clientToken: string;
   cronToken: string;
   stallMinutes: number;
+  /** DNA_INVESTIGATE: on | off | faux; defaults to faux in fixture search mode */
+  investigate: "on" | "off" | "faux";
+  investigateRepos: string[];
+  investigateFallbackModel?: string;
+  investigateFallbackDaily: number;
+  openrouterApiKey?: string;
 }
 
 /** apps/dna-server-api: its prompts and default config live with it. */
@@ -127,6 +133,22 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     clientToken: env.DNA_CLIENT_TOKEN?.trim() ?? "",
     cronToken: env.DNA_CRON_TOKEN?.trim() ?? "",
     stallMinutes: int(env.DNA_STALL_MINUTES, 30),
+    investigate:
+      (env.DNA_INVESTIGATE as "on" | "off" | "faux") ?? (searchMode === "fixture" ? "faux" : "on"),
+    investigateRepos: env.DNA_INVESTIGATE_REPOS
+      ? env.DNA_INVESTIGATE_REPOS.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [
+          "home-patrick",
+          "home-patrick-Bachelorprojekt",
+          "home-patrick-agentic-resources",
+          "home-patrick-news-agent",
+          "home-patrick-unsloth-boxes",
+        ],
+    investigateFallbackModel: env.DNA_INVESTIGATE_FALLBACK_MODEL?.trim() || undefined,
+    investigateFallbackDaily: int(env.DNA_INVESTIGATE_FALLBACK_DAILY, 5),
+    openrouterApiKey: env.OPENROUTER_API_KEY?.trim() || undefined,
   };
   config.deviceName =
     env.DNA_DEVICE_LABEL?.trim() ||

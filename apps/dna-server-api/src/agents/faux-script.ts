@@ -213,4 +213,43 @@ const publishDate: FauxRule = (turn) => {
   return say(JSON.stringify({ published: day }));
 };
 
-export const fauxRules = (): FauxRule[] => [publishDate, direct, researcher, deepResearcher, desk];
+let fauxInvestigatorMode: "valid" | "invalid_json" | undefined;
+export function setFauxInvestigatorMode(mode: "valid" | "invalid_json" | undefined) {
+  fauxInvestigatorMode = mode;
+}
+
+// An investigator subagent: one repo_search, then a valid report JSON naming home-patrick-news-agent
+const investigator: FauxRule = (turn) => {
+  if (!("investigator" in turn.sections)) return undefined;
+  if (!called(turn, "repo_search").length) {
+    return call("repo_search", { project: "home-patrick-news-agent", query: "issues" });
+  }
+  if (fauxInvestigatorMode === "invalid_json" || /invalid_json/i.test(turn.lastUser)) {
+    return say("This is not valid JSON at all.");
+  }
+  const report = {
+    summary: "Die Untersuchung bestätigt das Issue und empfiehlt die Übernahme.",
+    source: [{ claim: "Funktion vorhanden", evidence: ["https://example.com"] }],
+    existing: [
+      {
+        project: "home-patrick-news-agent",
+        paths: ["apps/dna-server-api/src/news/issues.ts"],
+        note: "Grundstruktur vorhanden",
+      },
+    ],
+    missing: ["Automatisierte Ausführung"],
+    proposal: "adopt",
+    targets: ["home-patrick-news-agent"],
+    reasoning: "Passt direkt in unsere Pipeline.",
+  };
+  return say(JSON.stringify(report));
+};
+
+export const fauxRules = (): FauxRule[] => [
+  publishDate,
+  direct,
+  researcher,
+  deepResearcher,
+  investigator,
+  desk,
+];

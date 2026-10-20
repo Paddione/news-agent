@@ -13,6 +13,8 @@ import { componentCatalog } from "../news/components.ts";
 import { createDeepResearchTask, deepResearchSetting } from "../news/deep-research.ts";
 import { createImageTask } from "../news/image-task.ts";
 import { createSweepTask } from "../news/sweep-task.ts";
+import { createInvestigateTask, type InvestigateInput } from "../news/investigate.ts";
+import { repoTools } from "./tools/repo.ts";
 import { askTaste } from "./tools/ask-taste.ts";
 import { completeSweep } from "./tools/complete-sweep.ts";
 import { deepDiveResearch } from "./tools/deep-dive-research.ts";
@@ -69,11 +71,21 @@ export const RESEARCHER_TOOLS = [
   "report_findings",
 ] as const;
 export const DEEP_RESEARCH_TOOLS = ["deep_search", "open_page", "read_item"] as const;
+export const INVESTIGATOR_TOOLS = [
+  "deep_search",
+  "open_page",
+  "read_item",
+  "repo_search",
+  "repo_symbol",
+  "repo_overview",
+] as const;
 
 export interface Agents {
   newsDesk: Extension;
   newsResearcher: Extension;
   deepResearch: Extension;
+  investigator: Extension;
+  investigateTask: any;
   observe: Extension;
   /** Install order for the registry. */
   all: Extension[];
@@ -83,6 +95,8 @@ export interface Agents {
   researcher(): AgentChange;
   /** What a deep-research child runs with: the reader's deep research model and thinking level. */
   deepResearcher(): AgentChange;
+  /** What an investigator child runs with. */
+  investigatorChild(): AgentChange;
   /** Each agent's tools, for the tool list clients show. */
   tools: Record<string, readonly { name: string; description: string; parameters: unknown }[]>;
 }
@@ -114,6 +128,7 @@ export function createAgents(deps: Deps): Agents {
         ? "Firecrawl (web and news search, full page scrapes), with free search engines and direct page fetches when it fails"
         : "free search engines (Bing web, DuckDuckGo, Bing News, Google News, Hacker News) and direct page fetches",
   });
+  const investigatorPrompt = loadPrompt(agentsDir, "investigator", "SYSTEM_PROMPT.md", {});
   const shared = {
     readItem: readItem(deps),
     searchWeb: searchWeb(deps),
@@ -162,6 +177,29 @@ export function createAgents(deps: Deps): Agents {
       extensions: [deepResearch, observe],
     };
   };
+  const investigatorTools = [
+    deepSearch(deps),
+    openPage(deps),
+    shared.readItem,
+    ...repoTools(deps.graph),
+  ];
+  const investigator = defineExtension({
+    name: "investigator",
+    tools: investigatorTools,
+    sections: [section("investigator", () => investigatorPrompt, { tag: false })],
+    hooks: [allowOnly("investigator", INVESTIGATOR_TOOLS)],
+  });
+  const investigatorChild = (): AgentChange => {
+    return {
+      model:
+        deps.catalog.provider === "faux"
+          ? deps.catalog.defaultModel
+          : deps.catalog.ref(deps.config.researchModel),
+      thinkingLevel: "medium",
+      extensions: [investigator, observe],
+    };
+  };
+  const investigateTask = createInvestigateTask(deps, investigatorChild);
   const deskTools = [
     runNewsSweep(deps, sweepTask),
     listCandidates(deps),
@@ -190,21 +228,25 @@ export function createAgents(deps: Deps): Agents {
     tools: deskTools,
     sections: [section("news-desk", () => deskPrompt, { tag: false })],
     hooks: [allowOnly("news-desk", DESK_TOOLS)],
-    tasks: [sweepTask, imageTask, deepResearchTask],
+    tasks: [sweepTask, imageTask, deepResearchTask, investigateTask],
   });
   return {
     newsDesk,
     newsResearcher,
     deepResearch,
+    investigator,
+    investigateTask,
     observe,
-    all: [newsDesk, newsResearcher, deepResearch, observe],
+    all: [newsDesk, newsResearcher, deepResearch, investigator, observe],
     defaults: [newsDesk, observe],
     researcher,
     deepResearcher,
+    investigatorChild,
     tools: {
       "news-desk": deskTools,
       "news-researcher": researcherTools,
       "deep-research": deepResearchTools,
+      investigator: investigatorTools,
     },
   };
 }
