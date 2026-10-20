@@ -824,6 +824,27 @@ try {
   check(true, "a card's group chip opens the group tab with the group's cards");
   await page.getByRole("button", { name: "Close the agent-harnesses group" }).click();
 
+  // ---------------------------------------------------------------- card to issue
+  const issueCard = page.locator(`[data-card-id="${groupedCard.id}"]`).first();
+  await issueCard.getByRole("button", { name: "Create issue" }).click();
+  await issueCard.getByLabel("What should be checked? (optional)").fill("check our hooks");
+  await collectCaps();
+  await issueCard.getByRole("button", { name: "Create the issue" }).click();
+  const issueChip = issueCard.getByRole("link", { name: "Open issue #1" });
+  await issueChip.waitFor();
+  check(
+    (await issueChip.getAttribute("href"))?.endsWith("/issues/1") &&
+      (await call("GET", `/v1/cards/${groupedCard.id}`)).card.issue?.number === 1,
+    "Create issue turns a card into issue #1 and shows its chip",
+  );
+  await page.reload();
+  await page
+    .locator(`[data-card-id="${groupedCard.id}"]`)
+    .first()
+    .getByRole("link", { name: "Open issue #1" })
+    .waitFor();
+  check(true, "the issue chip survives a reload");
+
   // ---------------------------------------------------------------- layout
   await collectCaps();
   await cleanText("main view");
