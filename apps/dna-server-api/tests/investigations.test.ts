@@ -2,6 +2,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { tempStore } from "./helpers.ts";
 import { seedCard } from "./card-issues.test.ts";
+import {
+  parseReport,
+  renderReport,
+  targetLabels,
+  ReportError,
+  type InvestigationReport,
+} from "../src/news/investigation-report.ts";
 
 test("investigations repository: lifecycle, limits and card join", () => {
   const { store, cleanup } = tempStore();
@@ -102,4 +109,95 @@ test("investigations repository: lifecycle, limits and card join", () => {
   } finally {
     cleanup();
   }
+});
+
+test("investigation report: parseReport validates schema, drops unknown targets, handles fences", () => {
+  const allowed = ["home-patrick", "home-patrick-news-agent"];
+  const valid = {
+    summary: "Kurzfazit hier.",
+    source: [{ claim: "Claim 1", evidence: ["https://example.com"] }],
+    existing: [{ project: "home-patrick-news-agent", paths: ["src/a.ts"], note: "Has a" }],
+    missing: ["Feature B"],
+    proposal: "adopt",
+    targets: ["home-patrick-news-agent", "unknown-repo"],
+    reasoning: "Gute Idee.",
+  };
+
+  // Bare JSON
+  const parsed1 = parseReport(JSON.stringify(valid), allowed);
+  assert.equal(parsed1.summary, "Kurzfazit hier.");
+  assert.deepEqual(parsed1.targets, ["home-patrick-news-agent"]); // unknown dropped
+
+  // Fenced JSON
+  const fenced = "```json\n" + JSON.stringify(valid) + "\n```";
+  const parsed2 = parseReport(fenced, allowed);
+  assert.equal(parsed2.summary, "Kurzfazit hier.");
+
+  // Missing field throws ReportError
+  assert.throws(
+    () => parseReport(JSON.stringify({ ...valid, summary: undefined }), allowed),
+    ReportError,
+  );
+
+  // Proposal outside the four values throws ReportError
+  assert.throws(
+    () => parseReport(JSON.stringify({ ...valid, proposal: "invalid" }), allowed),
+    ReportError,
+  );
+
+  // Invalid JSON throws ReportError
+  assert.throws(() => parseReport("not json", allowed), ReportError);
+});
+
+test("investigation report: renderReport sections, proposal translations, footer and automatic search note", () => {
+  const report: InvestigationReport = {
+    summary: "Das ist die Zusammenfassung.",
+    source: [{ claim: "Quelle A", evidence: ["https://source.dev"] }],
+    existing: [
+      { project: "home-patrick-news-agent", paths: ["apps/dna/test.ts"], note: "Bereits da" },
+    ],
+    missing: ["Fehlender Baustein"],
+    proposal: "evaluate",
+    targets: ["home-patrick-news-agent"],
+    reasoning: "Muss geprüft werden.",
+  };
+
+  const md = renderReport(report, {
+    route: "local",
+    model: "Swift",
+    date: "2026-10-20",
+  });
+
+  assert.ok(md.includes("## Kurzfazit"));
+  assert.ok(md.includes("## Was die Quelle sagt"));
+  assert.ok(md.includes("## Was wir schon haben"));
+  assert.ok(md.includes("## Was fehlt"));
+  assert.ok(md.includes("## Vorschlag"));
+  assert.ok(md.includes("bewerten"));
+  assert.ok(md.includes("apps/dna/test.ts"));
+  assert.ok(md.includes("local"));
+  assert.ok(md.includes("Swift"));
+  assert.ok(md.includes("2026-10-20"));
+
+  // Check section order
+  const idx1 = md.indexOf("## Kurzfazit");
+  const idx2 = md.indexOf("## Was die Quelle sagt");
+  const idx3 = md.indexOf("## Was wir schon haben");
+  const idx4 = md.indexOf("## Was fehlt");
+  const idx5 = md.indexOf("## Vorschlag");
+  assert.ok(idx1 < idx2 && idx2 < idx3 && idx3 < idx4 && idx4 < idx5);
+
+  // With automaticRepoSearch
+  const autoMd = renderReport(report, {
+    route: "fallback",
+    model: "openrouter/model",
+    date: "2026-10-20",
+    automaticRepoSearch: true,
+  });
+  assert.ok(autoMd.includes("automatische Suche, kein Abgleich durch das Modell"));
+});
+
+test("investigation report: targetLabels maps repos to labels", () => {
+  const labels = targetLabels(["home-patrick", "home-patrick-news-agent"]);
+  assert.deepEqual(labels, ["target:dotfiles", "target:news-agent"]);
 });
