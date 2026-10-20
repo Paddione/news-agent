@@ -1,7 +1,7 @@
 ---
 title: Card to issue
 domains: [dna-server-api, dna-sdk, dna-client-browser]
-status: staged
+status: completed
 ---
 
 # card-to-issue — Implementation Plan
