@@ -116,7 +116,8 @@ group, with the same visibility filters and order as the other tabs.
 
 A script `apps/dna-server-api/scripts/topic-groups-rollout.ts` calls the API with `DNA_CLIENT_TOKEN`:
 
-1. Create the groups with their weights (set by the reader during rollout; default 1.0).
+1. Create the groups with their weights: agent-harnesses 1.5, agent-security 1.5, local-inference 1.5,
+   models 1.2, agentic-resources 1.2, agent-ops 0.8.
 2. Create the new topics and assign them; disable the replaced topics (disable, not delete, because seeds
    come back on restart).
 3. Print the before/after topic list so it can be reverted by hand.
