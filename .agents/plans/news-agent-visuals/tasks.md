@@ -8,7 +8,7 @@ branch: feature/news-agent-visuals
 
 # news-agent-visuals — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers (any harness):** Read `HANDOFF.md` in this folder first. Execute task by task in the order given there, test first (red, then green), one commit per task, and tick each `- [ ]` step as you go. Claude Code may use superpowers:subagent-driven-development or superpowers:executing-plans; other harnesses use their own executor with the same order.
 
 **Goal:** Jede Karte hat ein Bild ohne Bildmodell, Karten zeigen belegte Artikelzahlen, und ein Dashboard zeigt Themen, Trichter, H/F/S und Richter-Feedback.
 
