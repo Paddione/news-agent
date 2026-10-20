@@ -116,6 +116,17 @@ export interface Keyword {
   source: "seed" | "user";
   enabled: boolean;
   lastSearchedAt?: string;
+  /** Topics only: the group whose weight multiplies this topic's. */
+  groupId?: number;
+}
+
+/** A hand-set weight over several topics; a topic's effective weight is its own times its group's. */
+export interface TopicGroup {
+  id: number;
+  name: string;
+  weight: number;
+  enabled: boolean;
+  topicCount: number;
 }
 
 export type SourceKind = "rss" | "atom" | "hn_front" | "hn_search" | "github_releases" | "web_page";
