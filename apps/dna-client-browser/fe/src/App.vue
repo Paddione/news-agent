@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted } from "vue";
 import AgentColumn from "./components/AgentColumn.vue";
 import CardDetailDialog from "./components/CardDetailDialog.vue";
+import DashboardView from "./components/DashboardView.vue";
 import ExecutionsView from "./components/ExecutionsView.vue";
 import FeedColumn from "./components/FeedColumn.vue";
 import SettingsModal from "./components/SettingsModal.vue";
@@ -51,6 +52,7 @@ function resizeMove(e: PointerEvent) {
       <AgentColumn v-if="layout.agent" />
     </main>
     <ExecutionsView v-if="route.view === 'executions'" />
+    <DashboardView v-if="route.view === 'dashboard'" />
     <SettingsModal v-if="ui.settings" />
     <CardDetailDialog v-if="ui.card !== undefined" :id="ui.card" />
     <div v-if="toast" class="toast" :class="toast.kind" role="status">{{ toast.text }}</div>

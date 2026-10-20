@@ -840,6 +840,25 @@ try {
       .catch(() => {});
   }
 
+  // ---------------------------------------------------------------- dashboard
+  // Dashboard: four tiles, no console errors, the window switch reloads.
+  {
+    const dashErrors = [];
+    const onError = (m) => m.type() === "error" && dashErrors.push(m.text());
+    page.on("console", onError);
+    await page.locator('button[aria-label="Dashboard"]').click();
+    await page.locator(".dashboard .dash-tile").first().waitFor();
+    check((await page.locator(".dashboard .dash-tile").count()) === 4, "dashboard has four tiles");
+    await page.locator('.dashboard button[data-days="30"]').click();
+    await page.locator('.dashboard button[data-days="30"][aria-pressed="true"]').waitFor();
+    check(
+      dashErrors.length === 0,
+      `dashboard renders four tiles without console errors${dashErrors.length ? `: ${dashErrors[0]}` : ""}`,
+    );
+    page.off("console", onError);
+    await page.evaluate(() => (location.hash = "#/"));
+  }
+
   // ---------------------------------------------------------------- capabilities
   const { CAPABILITY_IDS } = await import(
     join(root, "apps/shared/packages/dna-sdk/src/capabilities.ts")
