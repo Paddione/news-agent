@@ -518,7 +518,7 @@ export type Frame =
   /** The schedule changed (the top bar, the CLI or set_schedule). */
   | { type: "schedule"; schedule: ScheduleState }
   /** The agent changed keywords (edit_keyword, card_feedback): the new list. */
-  | { type: "taste.keywords"; keywords: Keyword[] }
+  | { type: "taste.keywords"; keywords: Keyword[]; groups: TopicGroup[] }
   | { type: "disconnected"; reason: string };
 
 export type WhenBusy = "followUp" | "steer";

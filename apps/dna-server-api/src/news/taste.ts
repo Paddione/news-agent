@@ -1,5 +1,5 @@
 // Taste: feedback moves keyword weights; recent feedback becomes jev few-shot examples; heavy, stale topics get searched.
-import type { Card, HfsCategory, Keyword, SourceLead } from "@dna/sdk";
+import type { Card, Frame, HfsCategory, Keyword, SourceLead } from "@dna/sdk";
 import type { Store } from "../db/store.ts";
 import { leadsFromUpvote } from "./leads.ts";
 import { sourceFor } from "./rank.ts";
@@ -7,6 +7,13 @@ import { sourceFor } from "./rank.ts";
 export const MORE = 0.1;
 export const LESS = -0.15;
 export const LABEL = 0.1;
+
+/** The live frame for settings: every keyword and every topic group. */
+export const tasteFrame = (store: Store): Frame => ({
+  type: "taste.keywords",
+  keywords: store.taste.keywords(),
+  groups: store.taste.groups(),
+});
 
 export interface FeedbackResult {
   changed: { id: number; term: string; kind: string; from: number; to: number }[];

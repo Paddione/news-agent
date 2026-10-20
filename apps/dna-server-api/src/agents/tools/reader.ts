@@ -7,7 +7,7 @@ import { HFS_CATEGORIES, TAB_BYS, type Card, type Keyword, type Source } from "@
 import type { Deps } from "../../deps.ts";
 import { clamp } from "../../db/repos/taste.ts";
 import { MAX_CARDS } from "../../news/schedule.ts";
-import { applyFeedback } from "../../news/taste.ts";
+import { applyFeedback, tasteFrame } from "../../news/taste.ts";
 
 const VOTES = ["up", "down"] as const;
 const ACTIONS = ["add", "remove", "enable", "disable", "rank_up", "rank_down"] as const;
@@ -49,7 +49,7 @@ function noCard(args: { card_id?: number; item_id?: number }) {
 }
 
 function publishKeywords(deps: Deps) {
-  deps.bus.publish({ type: "taste.keywords", keywords: deps.store.taste.keywords() });
+  deps.bus.publish(tasteFrame(deps.store));
 }
 
 export function cardFeedback(deps: Deps) {

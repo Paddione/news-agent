@@ -29,6 +29,7 @@ export class ApiFault extends Error {
 
 export const invalid = (message: string) => new ApiFault("invalid", message);
 export const notFound = (message: string) => new ApiFault("not_found", message);
+export const conflict = (message: string) => new ApiFault("conflict", message);
 
 export function errorMiddleware(log: Logger): ErrorRequestHandler {
   return (err, req, res, _next) => {
