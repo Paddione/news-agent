@@ -8,3 +8,5 @@ test-results/
 .DS_Store
 *.log
 .playwright-cli/
+# Local repo-code-graph artifacts (same convention as Bachelorprojekt)
+.codebase-memory/
