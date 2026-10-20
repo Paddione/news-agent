@@ -143,3 +143,47 @@ test("issueFor: title, labels and the body sections", () => {
   assert.deepEqual(bare.labels, ["news-card"]);
   assert.equal(bare.title.length, 120);
 });
+
+test("issueFor: every card kind brings its own fields", () => {
+  const release = issueFor(
+    {
+      ...card,
+      component: "release",
+      title: "ModVet",
+      props: {
+        name: "ModVet",
+        version: "v0.2.0",
+        changes: ["Scans mod folders", "Flags prompt injection"],
+      },
+    } as unknown as Card,
+    item,
+    [],
+    undefined,
+    "news-card",
+  );
+  assert.equal(release.title, "ModVet v0.2.0");
+  assert.ok(release.body.includes("- Scans mod folders\n- Flags prompt injection"), release.body);
+  const alert = issueFor(
+    { ...card, props: { title: "t", why: "why text", action: "action text" } } as unknown as Card,
+    item,
+    [],
+    undefined,
+    "news-card",
+  );
+  assert.ok(
+    alert.body.includes("why text") && alert.body.includes("Action: action text"),
+    alert.body,
+  );
+  const hype = issueFor(
+    {
+      ...card,
+      component: "hype_watch",
+      props: { title: "t", reality_check: "reality text" },
+    } as unknown as Card,
+    item,
+    [],
+    undefined,
+    "news-card",
+  );
+  assert.ok(hype.body.includes("reality text"), hype.body);
+});

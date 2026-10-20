@@ -111,14 +111,22 @@ export function issueFor(
   baseLabel: string,
 ): IssueInput {
   const props = card.props ?? {};
+  // Each card kind keeps its text in its own props: brief summary, signal_alert why and action, hype_watch
+  // reality_check, release version and changes.
   const summary =
     text(props.why) ||
     text(props.summary) ||
+    text(props.reality_check) ||
     text(props.dek) ||
-    text(props.action) ||
     text(item?.excerpt);
+  const changes = Array.isArray(props.changes) ? props.changes.map(text).filter(Boolean) : [];
+  const lead = [
+    ...(summary ? [summary] : []),
+    ...(text(props.action) ? [`Action: ${text(props.action)}`] : []),
+    ...(changes.length ? ["", "Changes:", ...changes.map((c) => `- ${c}`)] : []),
+  ];
   const facts = [
-    summary,
+    ...lead,
     "",
     `- Source: ${card.url ?? item?.url ?? "unknown"}${item?.sourceName ? ` (${item.sourceName})` : ""}`,
     ...(card.discussionUrl ? [`- Discussion: ${card.discussionUrl}`] : []),
@@ -152,7 +160,7 @@ export function issueFor(
     ...(found.length ? found : ["None yet.", ""]),
   ].join("\n");
   return {
-    title: card.title.trim().slice(0, 120),
+    title: [card.title.trim(), text(props.version)].filter(Boolean).join(" ").slice(0, 120),
     body,
     labels: [baseLabel, ...(card.group ? [`group:${card.group}`] : [])],
   };
