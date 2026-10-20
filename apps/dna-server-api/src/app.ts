@@ -9,6 +9,7 @@ import { agentRoutes } from "./routes/agent.ts";
 import { executionRoutes } from "./routes/executions.ts";
 import { feedRoutes } from "./routes/feed.ts";
 import { infoRoutes } from "./routes/info.ts";
+import { issueRoutes } from "./routes/issues.ts";
 import { keywordRoutes } from "./routes/keywords.ts";
 import { logRoutes } from "./routes/logs.ts";
 import { sourceRoutes } from "./routes/sources.ts";
@@ -29,6 +30,7 @@ export function createHttpApp(app: App) {
     ...workflowRoutes(deps),
     ...scheduleRoutes(deps),
     ...feedRoutes(deps),
+    ...issueRoutes(deps),
     ...tasteRoutes(deps),
     ...keywordRoutes(deps),
     ...topicGroupRoutes(deps),

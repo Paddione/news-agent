@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { Activity, ExternalLink, X } from "@lucide/vue";
+import { Activity, CircleDot, ExternalLink, X } from "@lucide/vue";
 import { ms, type CardDetail } from "@dna/sdk";
 import { go } from "../client/route";
 import { api, attempt, ui } from "../client/store";
@@ -67,6 +67,14 @@ function openTool(id: number) {
           </ul>
         </div>
         <footer>
+          <a
+            v-if="detail.card.issue"
+            class="button secondary"
+            :href="detail.card.issue.url"
+            target="_blank"
+            rel="noopener"
+            ><CircleDot :size="15" />Issue #{{ detail.card.issue.number }}</a
+          >
           <a
             v-if="detail.card.url"
             class="button secondary"

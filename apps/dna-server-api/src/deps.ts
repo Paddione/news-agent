@@ -10,6 +10,7 @@ import type { Judge } from "./news/hfs.ts";
 import type { Http } from "./news/http.ts";
 import type { Images } from "./news/images.ts";
 import type { Quick } from "./news/quick.ts";
+import type { IssueTracker } from "./news/issues.ts";
 import type { Schedule } from "./news/schedule.ts";
 import type { SearchService } from "./news/search/index.ts";
 
@@ -29,6 +30,8 @@ export interface Deps {
   dates: Dates;
   /** How often scheduled sweeps run. */
   schedule: Schedule;
+  /** Where cards turned into issues go (gh, or faux in fixture mode). */
+  issues: IssueTracker;
   /** DNA_FALLBACK_*: local agent model or the hosted fallback, checked per sweep. Unset without a fallback. */
   route?: AgentRoute;
 }

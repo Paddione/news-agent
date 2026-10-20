@@ -82,6 +82,13 @@ export function buildCommands(state: CompletionState): Command[] {
       getArgumentCompletions: cards,
     },
     {
+      name: "issue",
+      cap: "card.issue",
+      description: "turn a card into a GitHub issue, with an optional note",
+      argumentHint: "<id> [note]",
+      getArgumentCompletions: cards,
+    },
+    {
       name: "more",
       cap: "feedback.more",
       description: "show me more like this card",

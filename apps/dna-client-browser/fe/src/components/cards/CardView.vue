@@ -15,6 +15,7 @@ import { openTab, openTimeline } from "../../client/layout";
 import { clean } from "../../client/text";
 import { now, referenceInChat, ui } from "../../client/store";
 import FeedbackBar from "../FeedbackBar.vue";
+import IssueButton from "../IssueButton.vue";
 import HfsPill from "../HfsPill.vue";
 import FiguresBlock from "./FiguresBlock.vue";
 import { cardComponent } from "./registry";
@@ -110,6 +111,7 @@ const image = computed(() =>
         >
           <MessageSquareQuote :size="14" />
         </button>
+        <IssueButton :card="card" />
         <button
           class="icon-button small"
           data-cap="card.read"

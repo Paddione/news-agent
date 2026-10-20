@@ -22,6 +22,7 @@ export const CAPABILITIES = {
   "feedback.more": { summary: "Show me more like this card", routes: ["cards.feedback"] },
   "feedback.less": { summary: "Show me less like this card", routes: ["cards.feedback"] },
   "feedback.label": { summary: "Label a card hype, facts or signal", routes: ["cards.feedback"] },
+  "card.issue": { summary: "Turn a card into a GitHub issue", routes: ["cards.issue"] },
   "taste.read": { summary: "Keywords and recent feedback", routes: ["taste.get"] },
   "taste.answer": {
     summary: "Answer the agent's taste questions",

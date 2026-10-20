@@ -83,6 +83,8 @@ export interface Card {
   topic?: string;
   /** The group of that topic, when it has one. */
   group?: string;
+  /** The GitHub issue the reader turned this card into. */
+  issue?: { number: number; url: string };
   timeline?: TimelineRef;
   hfs?: HfsScores;
   attention?: number;
@@ -123,6 +125,15 @@ export interface Keyword {
   lastSearchedAt?: string;
   /** Topics only: the group whose weight multiplies this topic's. */
   groupId?: number;
+}
+
+/** A card turned into a GitHub issue in the inbox repo. */
+export interface CardIssue {
+  repo: string;
+  number: number;
+  url: string;
+  note?: string;
+  createdAt: string;
 }
 
 /** A hand-set weight over several topics; a topic's effective weight is its own times its group's. */

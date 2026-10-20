@@ -5,6 +5,7 @@ import type {
   AgentState,
   Card,
   CardDetail,
+  CardIssue,
   CompactionBody,
   CompactionState,
   FeedbackBody,
@@ -314,6 +315,9 @@ export class DnaClient {
   }
   removeKeyword(id: number) {
     return this.call<{ ok: true }>("keywords.remove", { params: { id } });
+  }
+  createIssue(cardId: number, body: { note?: string }) {
+    return this.call<CardIssue>("cards.issue", { params: { id: cardId }, body });
   }
   topicGroups() {
     return this.call<TopicGroup[]>("groups.list");
