@@ -138,7 +138,9 @@ export function createAgents(deps: Deps): Agents {
     model:
       deps.catalog.provider === "faux"
         ? deps.catalog.defaultModel
-        : deps.catalog.ref(deps.config.researchModel),
+        : deps.catalog.ref(
+            deps.route?.modelFor(deps.config.researchModel) ?? deps.config.researchModel,
+          ),
     thinkingLevel: "low",
     extensions: [newsResearcher, observe],
   });
@@ -155,7 +157,7 @@ export function createAgents(deps: Deps): Agents {
       model:
         deps.catalog.provider === "faux"
           ? deps.catalog.defaultModel
-          : deps.catalog.ref(setting.model),
+          : deps.catalog.ref(deps.route?.modelFor(setting.model) ?? setting.model),
       thinkingLevel: setting.thinkingLevel,
       extensions: [deepResearch, observe],
     };

@@ -82,6 +82,18 @@ export interface LocalOptions {
   baseUrl: string;
   model: string;
   contextWindow: number;
+  /** A hosted OpenAI-compatible model the app switches to while the local server is down. */
+  fallback?: FallbackOptions;
+}
+
+export interface FallbackOptions {
+  baseUrl: string;
+  model: string;
+  contextWindow: number;
+  /** Env names pi-ai reads the bearer key from, first set wins. */
+  apiKeyEnv: string[];
+  /** USD per 1M tokens, for the cost telemetry. */
+  cost: { input: number; output: number };
 }
 
 export interface ModelCatalog {
@@ -190,6 +202,31 @@ function localCatalog(models: MutableModels, local: LocalOptions | undefined): M
       api: openAICompletionsApi(),
     }),
   );
+  const fallback = local.fallback;
+  if (fallback)
+    models.setProvider(
+      createProvider({
+        id: "fallback",
+        name: "Hosted fallback",
+        baseUrl: fallback.baseUrl,
+        auth: { apiKey: envApiKeyAuth("Fallback endpoint key", fallback.apiKeyEnv) },
+        models: [
+          {
+            id: fallback.model,
+            name: fallback.model,
+            api: "openai-completions",
+            provider: "fallback",
+            baseUrl: fallback.baseUrl,
+            input: ["text"],
+            cost: { ...fallback.cost, cacheRead: 0, cacheWrite: 0 },
+            reasoning: false,
+            contextWindow: fallback.contextWindow,
+            maxTokens: 8192,
+          },
+        ],
+        api: openAICompletionsApi(),
+      }),
+    );
   const info: ModelInfo = {
     id: local.model,
     name: local.model,
@@ -200,17 +237,30 @@ function localCatalog(models: MutableModels, local: LocalOptions | undefined): M
     reasoning: false,
     cost: { input: 0, output: 0 },
   };
+  const fallbackInfo: ModelInfo | undefined = fallback && {
+    id: fallback.model,
+    name: fallback.model,
+    tier: "L",
+    icon: "qwen.png",
+    provider: "fallback",
+    contextWindow: fallback.contextWindow,
+    reasoning: false,
+    cost: fallback.cost,
+  };
+  const all = fallbackInfo ? [info, fallbackInfo] : [info];
   const ref = (id: string): ModelRef => {
-    if (id !== local.model)
-      throw new Error(`Unknown model ${id}. The local catalog serves ${local.model}.`);
-    return { provider: "local", modelId: id };
+    if (id === local.model) return { provider: "local", modelId: id };
+    if (fallback && id === fallback.model) return { provider: "fallback", modelId: id };
+    throw new Error(
+      `Unknown model ${id}. The local catalog serves ${all.map((m) => m.id).join(", ")}.`,
+    );
   };
   return {
     models,
     provider: "local",
     defaultModel: ref(local.model),
-    list: () => [info],
+    list: () => all,
     ref,
-    info: (id) => (id === local.model ? info : undefined),
+    info: (id) => all.find((m) => m.id === id),
   };
 }

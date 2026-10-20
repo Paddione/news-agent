@@ -27,3 +27,25 @@ test("local catalog rejects unknown ids", () => {
 test("local catalog requires local options", () => {
   assert.throws(() => createModelCatalog({ provider: "local" }), /needs local options/);
 });
+
+const fallback = {
+  baseUrl: "https://api.meta.ai/v1",
+  model: "muse-spark-1.3-contributor",
+  contextWindow: 153600,
+  apiKeyEnv: ["DNA_FALLBACK_API_KEY"],
+  cost: { input: 0.1, output: 0.2 },
+};
+
+test("a local catalog with a fallback serves both models, each from its own provider", () => {
+  const catalog = createModelCatalog({ provider: "local", local: { ...local, fallback } });
+  assert.deepEqual(catalog.defaultModel, { provider: "local", modelId: local.model });
+  assert.deepEqual(
+    catalog.list().map((m) => [m.id, m.provider]),
+    [
+      [local.model, "local"],
+      [fallback.model, "fallback"],
+    ],
+  );
+  assert.deepEqual(catalog.ref(fallback.model), { provider: "fallback", modelId: fallback.model });
+  assert.deepEqual(catalog.info(fallback.model)?.cost, { input: 0.1, output: 0.2 });
+});

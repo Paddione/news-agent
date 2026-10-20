@@ -19,6 +19,14 @@ export interface Config {
   /** DNA_PROVIDER=local: OpenAI-compatible endpoint and context window of the one local model. */
   localBaseUrl: string;
   localContextWindow: number;
+  /** DNA_FALLBACK_*: hosted OpenAI-compatible model for sweeps while the local server is down (key: DNA_FALLBACK_API_KEY
+   * or META_API_KEY). Off unless base URL and model are set. */
+  fallback?: {
+    baseUrl: string;
+    model: string;
+    dailySweeps: number;
+    cost: { input: number; output: number };
+  };
   jevBackend: "auto" | "fixture" | "mock" | "openrouter" | "typesafe" | "local";
   /** JEV_BACKEND=local: the judge's llama-server, its manifest, and the GPU session command. */
   jevLocalBaseUrl: string;
@@ -97,6 +105,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     researchModel: env.DNA_RESEARCH_MODEL ?? env.DNA_MODEL ?? fallbackModel,
     localBaseUrl: env.DNA_LOCAL_BASE_URL?.trim() || "http://127.0.0.1:1919/v1",
     localContextWindow: int(env.DNA_LOCAL_CONTEXT, 153600),
+    fallback: fallbackFrom(env),
     imageModel: env.DNA_IMAGE_MODEL ?? "gpt-image-2.5-flare",
     imageQuality: env.DNA_IMAGE_QUALITY ?? "low",
     openaiKey: env.OPENAI_API_KEY?.trim() || undefined,
@@ -147,4 +156,19 @@ export function nextRun(schedule: string, now = new Date()): Date | undefined {
     return next;
   }
   return undefined;
+}
+
+function fallbackFrom(env: NodeJS.ProcessEnv): Config["fallback"] {
+  const baseUrl = env.DNA_FALLBACK_BASE_URL?.trim();
+  const model = env.DNA_FALLBACK_MODEL?.trim();
+  if (!baseUrl || !model) return undefined;
+  const [input = 0, output = 0] = (env.DNA_FALLBACK_COST ?? "")
+    .split(",")
+    .map((v) => Number(v) || 0);
+  return {
+    baseUrl,
+    model,
+    dailySweeps: int(env.DNA_FALLBACK_DAILY_SWEEPS, 24),
+    cost: { input, output },
+  };
 }

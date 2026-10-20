@@ -23,6 +23,7 @@ import { createAgents, type Agents } from "./agents/index.ts";
 import { fauxRules } from "./agents/faux-script.ts";
 import type { Config } from "./config.ts";
 import { openStore } from "./db/store.ts";
+import { AgentModelRoute, localProbe, ModelRoute } from "./agents/model-route.ts";
 import type { Deps } from "./deps.ts";
 import { Bus } from "./events.ts";
 import { Dates } from "./news/dates.ts";
@@ -110,9 +111,29 @@ export async function openApp(
             baseUrl: config.localBaseUrl,
             model: config.model,
             contextWindow: config.localContextWindow,
+            fallback: config.fallback && {
+              baseUrl: config.fallback.baseUrl,
+              model: config.fallback.model,
+              // Same window as local, so compaction points stay valid when a sweep switches models.
+              contextWindow: config.localContextWindow,
+              apiKeyEnv: ["DNA_FALLBACK_API_KEY", "META_API_KEY"],
+              cost: config.fallback.cost,
+            },
           }
         : undefined,
   });
+  const route =
+    config.provider === "local" && config.fallback
+      ? new AgentModelRoute(
+          new ModelRoute({
+            localModel: config.model,
+            fallbackModel: config.fallback.model,
+            dailyCap: config.fallback.dailySweeps,
+            probe: localProbe(config.localBaseUrl),
+          }),
+          { catalog, selected: () => store.settings.get("model", config.model), log },
+        )
+      : undefined;
   const { decide, judgeRuntime } = options.decide
     ? { decide: options.decide, judgeRuntime: undefined }
     : decideFor(config);
@@ -144,7 +165,7 @@ export async function openApp(
     offline: config.provider === "faux" || config.searchMode === "fixture",
   });
   const bus = new Bus();
-  const quick = new Quick({ catalog, store, log });
+  const quick = new Quick({ catalog, store, log, route });
   const dates = new Dates({ http, store, log, quick });
   const deps: Deps = {
     config,
@@ -159,6 +180,7 @@ export async function openApp(
     quick,
     dates,
     schedule: new Schedule({ store, cronSchedule: config.cronSchedule }),
+    route,
   };
   const agents = createAgents(deps);
 
