@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { Type } from "@earendil-works/pi-ai";
 import { defineAppTool, toolError, toolText } from "@dna/durable-agent";
 import type { Deps } from "../../deps.ts";
+import { withheldReason } from "../../news/injection.ts";
 import { ref } from "./shared.ts";
 
 export const CHUNK_CHARS = 15_000;
@@ -44,6 +45,12 @@ export function hyperFetch(deps: Deps) {
     execute: async (args, api) => {
       const item = args.item_id ? deps.store.news.item(args.item_id) : undefined;
       if (args.item_id && !item) return toolError(`No item #${args.item_id}.`);
+      const held = item ? withheldReason(item) : undefined;
+      if (held)
+        return toolError(`Article text for #${item!.id} is withheld: ${held}.`, [
+          "Use the title and feed excerpt instead (read_item shows them).",
+          "Tell the reader the article is withheld if they asked for it.",
+        ]);
       const url = item?.url ?? args.url;
       if (!url) return toolError("hyper_fetch needs url or item_id.");
       const file = scrapeFile(deps.config.dataDir, url);

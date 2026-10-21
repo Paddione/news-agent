@@ -103,7 +103,7 @@ test("an unknown jev command comes back with the valid list and an example", asy
   assert.equal(r.isError, true);
   assert.match(
     r.text,
-    /"command" must be one of: relevance, worth-attention, hfs, same-story, claim-support, importance. You sent "vibes"/,
+    /"command" must be one of: relevance, worth-attention, hfs, same-story, claim-support, importance, injection. You sent "vibes"/,
   );
   assert.match(r.text, /"command":"hfs"/);
 });

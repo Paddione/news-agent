@@ -49,6 +49,8 @@ export interface Item {
   lastError?: string;
   /** jev's importance for the reader (0 to 1), set when a sweep ranks its candidates. */
   importance?: number;
+  /** jev's prompt-injection probability for the item's text (0 to 1); undefined until the judge scored it. */
+  injection?: number;
   createdAt: string;
 }
 
@@ -117,6 +119,7 @@ const toItem = (r: any): Item => ({
   attempts: r.attempts,
   lastError: str(r.last_error),
   importance: num(r.importance),
+  injection: num(r.injection),
   createdAt: r.created_at,
 });
 
@@ -308,6 +311,7 @@ export class NewsRepo {
         | "excerpt"
         | "imageUrl"
         | "importance"
+        | "injection"
       >
     >,
   ): void {
@@ -324,6 +328,7 @@ export class NewsRepo {
       excerpt: "excerpt",
       imageUrl: "image_url",
       importance: "importance",
+      injection: "injection",
     };
     const keys = Object.keys(patch).filter((k) => k in map);
     if (!keys.length) return;

@@ -7,6 +7,9 @@ import {
   DEFAULT_ATTENTION,
   type AttentionWeights,
   type Decide,
+  injectionVerdict,
+  type InjectionPolicy,
+  type InjectionVerdict,
   type JevCommand,
   JevLedger,
   listCommands,
@@ -32,6 +35,7 @@ export const JEV_COMMANDS = [
   "same-story",
   "claim-support",
   "importance",
+  "injection",
 ] as const;
 export type JevCommandName = (typeof JEV_COMMANDS)[number];
 
@@ -269,6 +273,32 @@ export class Judge {
         sweepId: ref.sweepId,
       });
     return { ...hfs, classificationId: row.id };
+  }
+
+  /**
+   * Prompt-injection probability for the item's text (0 to 1) plus the band verdict the sweep gate acts on.
+   * The score is kept on the item, so a replay never pays for it twice and agent tools know what they may show.
+   * `text` is the page when the caller fetched it; without it jev reads the cached body or the excerpt.
+   */
+  async injection(
+    item: Item,
+    ref: JudgeRef = {},
+    text?: string,
+  ): Promise<{ score: number; verdict: InjectionVerdict }> {
+    const cmd = this.commands.injection;
+    const result = await this.run(
+      "injection",
+      {
+        title: item.title,
+        source: item.sourceName ?? "",
+        excerpt: text ?? excerptOf(item, this.deps.store, 1500),
+      },
+      { ...ref, itemId: item.id },
+    );
+    const score = yes(result.answers.injection, "injection");
+    const verdict = injectionVerdict(score, cmd.policy as InjectionPolicy);
+    if (item.injection !== score) this.deps.store.news.updateItem(item.id, { injection: score });
+    return { score, verdict };
   }
 
   async sameStory(
