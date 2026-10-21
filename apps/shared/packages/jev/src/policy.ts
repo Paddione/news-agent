@@ -111,3 +111,30 @@ export function yes(answer: Answer | undefined, id: string): number {
   if (!answer || answer.type !== "noul") throw new Error(`Expected a noul answer for "${id}"`);
   return answer.noul;
 }
+
+/** What happens to an item whose text may instruct the agent reading it. */
+export type InjectionVerdict = "allow" | "restrict" | "reject";
+
+export interface InjectionPolicy {
+  /** At or above this yes-probability the text commands the reader AI: drop the item. */
+  reject_min?: number;
+  /** At or below this probability the text is ordinary content: the agent may read it in full. */
+  allow_max?: number;
+}
+
+export const DEFAULT_INJECTION: Required<InjectionPolicy> = {
+  reject_min: 0.7,
+  allow_max: 0.3,
+};
+
+/**
+ * Three bands, as the injection-judge article recommends: hard reject at or above reject_min, hard allow at or
+ * below allow_max, and everything in between stays under review, so only the title and excerpt reach the agent.
+ */
+export function injectionVerdict(score: number, policy: InjectionPolicy = {}): InjectionVerdict {
+  const rejectMin = policy.reject_min ?? DEFAULT_INJECTION.reject_min;
+  const allowMax = policy.allow_max ?? DEFAULT_INJECTION.allow_max;
+  if (score >= rejectMin) return "reject";
+  if (score <= allowMax) return "allow";
+  return "restrict";
+}
