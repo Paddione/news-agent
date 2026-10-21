@@ -1,0 +1,1121 @@
+{
+ "projects": {
+  "news-agent": {
+   "graph_project": "home-patrick-news-agent",
+   "packages": [
+    {
+     "name": "dna-server-api",
+     "nodes": 1062,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "shared",
+     "nodes": 499,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "dna-client-browser",
+     "nodes": 155,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "dna-cli",
+     "nodes": 107,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "dna-client-tui",
+     "nodes": 88,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "dna-server-cron",
+     "nodes": 17,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "net",
+     "nodes": 13,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "test",
+     "nodes": 9,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "api",
+     "nodes": 7,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "browser",
+     "nodes": 7,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "cron",
+     "nodes": 6,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "cli",
+     "nodes": 4,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "combos",
+     "nodes": 4,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "tui",
+     "nodes": 4,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "justfile",
+     "nodes": 3,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "entry_points:",
+     "nodes": 20,
+     "fan_in": "(cols:",
+     "fan_out": "qn"
+    }
+   ],
+   "clusters": [
+    {
+     "label": "apps",
+     "members": 162,
+     "cohesion": 0.9661,
+     "top_nodes": [
+      "bind",
+      "nowIso",
+      "str",
+      "openStore",
+      "card"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 89,
+     "cohesion": 0.9344,
+     "top_nodes": [
+      "run",
+      "cleanText",
+      "command",
+      "redraw",
+      "pad"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 75,
+     "cohesion": 0.8883,
+     "top_nodes": [
+      "int",
+      "invalid",
+      "notFound",
+      "bodyOf",
+      "str"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 74,
+     "cohesion": 0.8681,
+     "top_nodes": [
+      "net",
+      "remote",
+      "step",
+      "deploy",
+      "up"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 74,
+     "cohesion": 0.6471,
+     "top_nodes": [
+      "path",
+      "repoRoot",
+      "loadPrompt",
+      "loadConfig",
+      "loadNetwork"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 73,
+     "cohesion": 0.8456,
+     "top_nodes": [
+      "toolText",
+      "toolError",
+      "execute",
+      "execute",
+      "execute"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 67,
+     "cohesion": 0.9346,
+     "top_nodes": [
+      "parseFeed",
+      "discoverSource",
+      "extractArticle",
+      "googleNews",
+      "webSearch"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 57,
+     "cohesion": 0.7875,
+     "top_nodes": [
+      "openApp",
+      "decideFor",
+      "setup",
+      "seed",
+      "lockFile"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 57,
+     "cohesion": 0.9375,
+     "top_nodes": [
+      "call",
+      "raw",
+      "DnaError",
+      "newRequestId",
+      "stream"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 51,
+     "cohesion": 0.863,
+     "top_nodes": [
+      "resolve",
+      "systemOne",
+      "systemOne",
+      "validateResponse",
+      "follow"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 50,
+     "cohesion": 0.8429,
+     "top_nodes": [
+      "createHttpApp",
+      "serve",
+      "next",
+      "ApiFault",
+      "state"
+     ]
+    },
+    {
+     "label": "apps",
+     "members": 40,
+     "cohesion": 0.9623,
+     "top_nodes": [
+      "attempt",
+      "load",
+      "notify",
+      "changed",
+      "choose"
+     ]
+    }
+   ]
+  },
+  "unsloth-boxes": {
+   "graph_project": "home-patrick-unsloth-boxes",
+   "packages": [
+    {
+     "name": "src",
+     "nodes": 374,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "tests",
+     "nodes": 362,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "boxlib",
+     "nodes": 177,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "corpora",
+     "nodes": 76,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "pyproject",
+     "nodes": 24,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "news_gpu_session",
+     "nodes": 19,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "box",
+     "nodes": 14,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "evals",
+     "nodes": 14,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "grpo_vllm_server",
+     "nodes": 9,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "boxbeat",
+     "nodes": 9,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "server",
+     "nodes": 8,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "tablet-ptt",
+     "nodes": 8,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "experiments",
+     "nodes": 7,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "voice_cmd",
+     "nodes": 6,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "str",
+     "nodes": 3,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "entry_points:",
+     "nodes": 20,
+     "fan_in": "(cols:",
+     "fan_out": "qn"
+    }
+   ],
+   "clusters": [
+    {
+     "label": "launcher",
+     "members": 118,
+     "cohesion": 0.7299,
+     "top_nodes": [
+      "up",
+      "snapshot",
+      "find_run",
+      "Env",
+      "down"
+     ]
+    },
+    {
+     "label": "decision-train",
+     "members": 104,
+     "cohesion": 0.5465,
+     "top_nodes": [
+      "len",
+      "range",
+      "dict",
+      "main",
+      "row"
+     ]
+    },
+    {
+     "label": "decision-train",
+     "members": 102,
+     "cohesion": 0.5159,
+     "top_nodes": [
+      "str",
+      "print",
+      "run_training",
+      "run_training",
+      "report"
+     ]
+    },
+    {
+     "label": "decision-train",
+     "members": 83,
+     "cohesion": 0.5403,
+     "top_nodes": [
+      "append",
+      "validate_testset",
+      "run",
+      "load_testset",
+      "format_ps"
+     ]
+    },
+    {
+     "label": "launcher",
+     "members": 61,
+     "cohesion": 0.6761,
+     "top_nodes": [
+      "acquire",
+      "list",
+      "active_leases",
+      "extend",
+      "collect"
+     ]
+    },
+    {
+     "label": "launcher",
+     "members": 53,
+     "cohesion": 0.6634,
+     "top_nodes": [
+      "main",
+      "gc",
+      "_mk",
+      "Run",
+      "_bare"
+     ]
+    },
+    {
+     "label": "decision-train",
+     "members": 43,
+     "cohesion": 0.8261,
+     "top_nodes": [
+      "shape",
+      "Task",
+      "route",
+      "dispatch",
+      "test_dispatch_fills_up_to_14_slots_concurrently"
+     ]
+    },
+    {
+     "label": "launcher",
+     "members": 36,
+     "cohesion": 0.8214,
+     "top_nodes": [
+      "load_job",
+      "load_box",
+      "render_cmd",
+      "ConfigError",
+      "_parse_job"
+     ]
+    },
+    {
+     "label": "launcher",
+     "members": 35,
+     "cohesion": 0.4333,
+     "top_nodes": [
+      "int",
+      "main",
+      "win_holders",
+      "wsl_holders",
+      "main"
+     ]
+    },
+    {
+     "label": "decision-train",
+     "members": 35,
+     "cohesion": 0.5833,
+     "top_nodes": [
+      "build_prompt",
+      "main",
+      "main",
+      "load_model",
+      "generate_all"
+     ]
+    },
+    {
+     "label": "launcher",
+     "members": 34,
+     "cohesion": 0.7,
+     "top_nodes": [
+      "collect_run",
+      "container_info",
+      "stop",
+      "_collect_or_unknown",
+      "DockerError"
+     ]
+    },
+    {
+     "label": "news-judge-train",
+     "members": 31,
+     "cohesion": 0.6207,
+     "top_nodes": [
+      "main",
+      "parity",
+      "is_lfm_model",
+      "publish",
+      "merge"
+     ]
+    }
+   ]
+  },
+  "agentic-resources": {
+   "graph_project": "home-patrick-agentic-resources",
+   "packages": [
+    {
+     "name": "dev-flow",
+     "nodes": 219,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "ml-training",
+     "nodes": 197,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "devtools",
+     "nodes": 99,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "scripts",
+     "nodes": 37,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "gitops",
+     "nodes": 31,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "references",
+     "nodes": 13,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "training-memory",
+     "nodes": 5,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "trace-proof",
+     "nodes": 5,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "str",
+     "nodes": 3,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "list",
+     "nodes": 3,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "init",
+     "nodes": 3,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "dict",
+     "nodes": 2,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "codebase-memory",
+     "nodes": 2,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "int",
+     "nodes": 1,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "range",
+     "nodes": 1,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "entry_points:",
+     "nodes": 20,
+     "fan_in": "(cols:",
+     "fan_out": "qn"
+    }
+   ],
+   "clusters": [
+    {
+     "label": "domains",
+     "members": 61,
+     "cohesion": 0.5243,
+     "top_nodes": [
+      "len",
+      "list",
+      "int",
+      "main",
+      "main"
+     ]
+    },
+    {
+     "label": "lifecycle",
+     "members": 57,
+     "cohesion": 0.99,
+     "top_nodes": [
+      "readOutput",
+      "debugLog",
+      "isTerminalStatus",
+      "delegate",
+      "finalizeDelegation"
+     ]
+    },
+    {
+     "label": "domains",
+     "members": 51,
+     "cohesion": 0.5682,
+     "top_nodes": [
+      "str",
+      "main",
+      "main",
+      "run_lighteval_vllm",
+      "run_lighteval_accelerate"
+     ]
+    },
+    {
+     "label": "domains",
+     "members": 51,
+     "cohesion": 0.6709,
+     "top_nodes": [
+      "range",
+      "main",
+      "main",
+      "main",
+      "main"
+     ]
+    },
+    {
+     "label": "lifecycle",
+     "members": 50,
+     "cohesion": 0.9884,
+     "top_nodes": [
+      "execute",
+      "warn",
+      "event",
+      "copyFiles",
+      "symlinkDirs"
+     ]
+    },
+    {
+     "label": "domains",
+     "members": 42,
+     "cohesion": 0.4564,
+     "top_nodes": [
+      "print",
+      "append",
+      "run_loop",
+      "run_eval",
+      "main"
+     ]
+    },
+    {
+     "label": "domains",
+     "members": 35,
+     "cohesion": 0.6341,
+     "top_nodes": [
+      "get",
+      "lower",
+      "run_leaderboard",
+      "score_dataset",
+      "http_get_json"
+     ]
+    },
+    {
+     "label": "lifecycle",
+     "members": 28,
+     "cohesion": 1.0,
+     "top_nodes": [
+      "openLinuxTerminal",
+      "openTerminalByType",
+      "buildBashCommandFromArgv",
+      "openMacOSTerminal",
+      "wrapWithSelfCleanup"
+     ]
+    },
+    {
+     "label": "domains",
+     "members": 23,
+     "cohesion": 0.6585,
+     "top_nodes": [
+      "main",
+      "analyze_check",
+      "run_gh_command",
+      "resolve_pr",
+      "fetch_checks"
+     ]
+    },
+    {
+     "label": "domains",
+     "members": 15,
+     "cohesion": 1.0,
+     "top_nodes": [
+      "showRun",
+      "renderOutputs",
+      "renderPrevOutputs",
+      "saveCurrentFeedback",
+      "renderBenchmark"
+     ]
+    },
+    {
+     "label": "runtimes",
+     "members": 12,
+     "cohesion": 0.6154,
+     "top_nodes": [
+      "dict",
+      "run",
+      "record",
+      "report",
+      "self_test"
+     ]
+    },
+    {
+     "label": "domains",
+     "members": 12,
+     "cohesion": 0.5833,
+     "top_nodes": [
+      "main",
+      "find_columns",
+      "format_value_preview",
+      "api_request",
+      "get_splits"
+     ]
+    }
+   ]
+  },
+  "Bachelorprojekt": {
+   "graph_project": "home-patrick-Bachelorprojekt",
+   "packages": [
+    {
+     "name": "py",
+     "nodes": 7367,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "website",
+     "nodes": 5605,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "VideoVault",
+     "nodes": 1814,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "llm",
+     "nodes": 352,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "lib",
+     "nodes": 320,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "e2e",
+     "nodes": 255,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "studio-server",
+     "nodes": 180,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "mcp",
+     "nodes": 177,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "llm-proxy",
+     "nodes": 175,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "finetune",
+     "nodes": 169,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "kit",
+     "nodes": 169,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "mentolder-web",
+     "nodes": 139,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "datamodel",
+     "nodes": 104,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "grilling-brett-admin-panel",
+     "nodes": 79,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "vda",
+     "nodes": 64,
+     "fan_in": "0",
+     "fan_out": "0"
+    },
+    {
+     "name": "entry_points:",
+     "nodes": 20,
+     "fan_in": "(cols:",
+     "fan_out": "qn"
+    }
+   ],
+   "clusters": [
+    {
+     "label": "tests",
+     "members": 745,
+     "cohesion": 0.8154,
+     "top_nodes": [
+      "str",
+      "int",
+      "run_cmd",
+      "_fn",
+      "_seal"
+     ]
+    },
+    {
+     "label": "scripts",
+     "members": 409,
+     "cohesion": 0.7423,
+     "top_nodes": [
+      "len",
+      "print",
+      "range",
+      "list",
+      "load_workflow_map"
+     ]
+    },
+    {
+     "label": "components",
+     "members": 340,
+     "cohesion": 0.8928,
+     "top_nodes": [
+      "getSession",
+      "isAdmin",
+      "piApi",
+      "setSiteSetting",
+      "POST"
+     ]
+    },
+    {
+     "label": "components",
+     "members": 268,
+     "cohesion": 0.9,
+     "top_nodes": [
+      "fetch",
+      "publishContent",
+      "showDetailPanel",
+      "request",
+      "POST"
+     ]
+    },
+    {
+     "label": "scripts",
+     "members": 259,
+     "cohesion": 0.9435,
+     "top_nodes": [
+      "node",
+      "cmdRun",
+      "main",
+      "runJob",
+      "cmdResume"
+     ]
+    },
+    {
+     "label": "tests",
+     "members": 223,
+     "cohesion": 0.7427,
+     "top_nodes": [
+      "append",
+      "_read",
+      "cmd_update",
+      "cmd_check",
+      "_text"
+     ]
+    },
+    {
+     "label": "components",
+     "members": 162,
+     "cohesion": 0.9825,
+     "top_nodes": [
+      "t",
+      "Badge",
+      "VideoSplitter",
+      "VideoPlayerModal",
+      "useVideoManager"
+     ]
+    },
+    {
+     "label": "components",
+     "members": 151,
+     "cohesion": 0.9571,
+     "top_nodes": [
+      "resolve",
+      "error",
+      "warn",
+      "info",
+      "handleEbookProcessing"
+     ]
+    },
+    {
+     "label": "tests",
+     "members": 90,
+     "cohesion": 0.7314,
+     "top_nodes": [
+      "dict",
+      "get",
+      "_helper",
+      "run",
+      "search"
+     ]
+    },
+    {
+     "label": "components",
+     "members": 84,
+     "cohesion": 0.8952,
+     "top_nodes": [
+      "query",
+      "initTimeEntriesTable",
+      "mapStatusFwd",
+      "createPoll",
+      "spawnTestRun"
+     ]
+    },
+    {
+     "label": "components",
+     "members": 83,
+     "cohesion": 0.8696,
+     "top_nodes": [
+      "assertVectorStoreEnabled",
+      "p",
+      "main",
+      "fetchEndpoint",
+      "main"
+     ]
+    },
+    {
+     "label": "components",
+     "members": 65,
+     "cohesion": 0.875,
+     "top_nodes": [
+      "ensureTables",
+      "sendEmail",
+      "POST",
+      "sendCampaignById",
+      "POST"
+     ]
+    }
+   ]
+  }
+ },
+ "bachelor_slices": [
+  {
+   "slice": "`(root)`",
+   "routes": "10",
+   "verbs": "GET, OPTIONS, POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`admin`",
+   "routes": "262",
+   "verbs": "DELETE, GET, OPTIONS, PATCH, POST, PUT",
+   "handled_by": []
+  },
+  {
+   "slice": "`assets`",
+   "routes": "1",
+   "verbs": "GET",
+   "handled_by": []
+  },
+  {
+   "slice": "`assistant`",
+   "routes": "5",
+   "verbs": "GET, POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`auth`",
+   "routes": "8",
+   "verbs": "GET, OPTIONS, POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`bge`",
+   "routes": "2",
+   "verbs": "GET",
+   "handled_by": []
+  },
+  {
+   "slice": "`billing`",
+   "routes": "4",
+   "verbs": "GET, POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`bookings`",
+   "routes": "1",
+   "verbs": "PATCH",
+   "handled_by": []
+  },
+  {
+   "slice": "`brett`",
+   "routes": "1",
+   "verbs": "POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`calendar`",
+   "routes": "1",
+   "verbs": "GET",
+   "handled_by": []
+  },
+  {
+   "slice": "`cron`",
+   "routes": "3",
+   "verbs": "GET, POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`demo`",
+   "routes": "1",
+   "verbs": "POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`internal`",
+   "routes": "7",
+   "verbs": "GET, POST, PUT",
+   "handled_by": []
+  },
+  {
+   "slice": "`meeting`",
+   "routes": "4",
+   "verbs": "POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`meetings`",
+   "routes": "1",
+   "verbs": "PATCH",
+   "handled_by": []
+  },
+  {
+   "slice": "`newsletter`",
+   "routes": "3",
+   "verbs": "GET, POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`poll`",
+   "routes": "3",
+   "verbs": "GET, POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`portal`",
+   "routes": "26",
+   "verbs": "GET, POST, PUT",
+   "handled_by": []
+  },
+  {
+   "slice": "`signing`",
+   "routes": "1",
+   "verbs": "POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`stream`",
+   "routes": "2",
+   "verbs": "POST",
+   "handled_by": []
+  },
+  {
+   "slice": "`stripe`",
+   "routes": "3",
+   "verbs": "POST",
+   "handled_by": []
+  }
+ ],
+ "dotfiles_note": "dotfiles has no graph project; covered by home-patrick root index"
+}
