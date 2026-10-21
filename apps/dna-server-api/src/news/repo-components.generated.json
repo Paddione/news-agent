@@ -252,13 +252,13 @@
    "packages": [
     {
      "name": "src",
-     "nodes": 374,
+     "nodes": 375,
      "fan_in": "0",
      "fan_out": "0"
     },
     {
      "name": "tests",
-     "nodes": 362,
+     "nodes": 364,
      "fan_in": "0",
      "fan_out": "0"
     },
@@ -299,13 +299,13 @@
      "fan_out": "0"
     },
     {
-     "name": "grpo_vllm_server",
+     "name": "boxbeat",
      "nodes": 9,
      "fan_in": "0",
      "fan_out": "0"
     },
     {
-     "name": "boxbeat",
+     "name": "grpo_vllm_server",
      "nodes": 9,
      "fan_in": "0",
      "fan_out": "0"
@@ -350,62 +350,74 @@
    "clusters": [
     {
      "label": "launcher",
-     "members": 118,
-     "cohesion": 0.7299,
+     "members": 134,
+     "cohesion": 0.7482,
      "top_nodes": [
       "up",
       "snapshot",
       "find_run",
-      "Env",
-      "down"
+      "down",
+      "reap"
      ]
     },
     {
      "label": "decision-train",
-     "members": 104,
-     "cohesion": 0.5465,
+     "members": 124,
+     "cohesion": 0.4946,
      "top_nodes": [
       "len",
-      "range",
-      "dict",
-      "main",
-      "row"
-     ]
-    },
-    {
-     "label": "decision-train",
-     "members": 102,
-     "cohesion": 0.5159,
-     "top_nodes": [
-      "str",
-      "print",
-      "run_training",
-      "run_training",
-      "report"
-     ]
-    },
-    {
-     "label": "decision-train",
-     "members": 83,
-     "cohesion": 0.5403,
-     "top_nodes": [
       "append",
-      "validate_testset",
-      "run",
-      "load_testset",
+      "int",
+      "main",
       "format_ps"
      ]
     },
     {
+     "label": "decision-train",
+     "members": 116,
+     "cohesion": 0.5297,
+     "top_nodes": [
+      "str",
+      "print",
+      "get",
+      "run_training",
+      "acquire"
+     ]
+    },
+    {
+     "label": "news-judge-train",
+     "members": 98,
+     "cohesion": 0.6048,
+     "top_nodes": [
+      "range",
+      "dict",
+      "main",
+      "row",
+      "label_rows"
+     ]
+    },
+    {
      "label": "launcher",
-     "members": 61,
-     "cohesion": 0.6761,
+     "members": 80,
+     "cohesion": 0.7023,
      "top_nodes": [
       "acquire",
       "list",
       "active_leases",
-      "extend",
-      "collect"
+      "claim",
+      "release"
+     ]
+    },
+    {
+     "label": "decision-train",
+     "members": 68,
+     "cohesion": 0.6268,
+     "top_nodes": [
+      "validate_testset",
+      "run",
+      "load_testset",
+      "build_prompt",
+      "main"
      ]
     },
     {
@@ -417,7 +429,7 @@
       "gc",
       "_mk",
       "Run",
-      "_bare"
+      "finished_age_s"
      ]
     },
     {
@@ -446,50 +458,38 @@
     },
     {
      "label": "launcher",
-     "members": 35,
-     "cohesion": 0.4333,
+     "members": 29,
+     "cohesion": 0.6719,
      "top_nodes": [
-      "int",
-      "main",
-      "win_holders",
-      "wsl_holders",
-      "main"
-     ]
-    },
-    {
-     "label": "decision-train",
-     "members": 35,
-     "cohesion": 0.5833,
-     "top_nodes": [
-      "build_prompt",
-      "main",
-      "main",
-      "load_model",
-      "generate_all"
+      "Env",
+      "parse_nvidia_smi",
+      "check_gate",
+      "gpus",
+      "query_gpus"
      ]
     },
     {
      "label": "launcher",
-     "members": 34,
-     "cohesion": 0.7,
+     "members": 25,
+     "cohesion": 0.7018,
      "top_nodes": [
-      "collect_run",
-      "container_info",
-      "stop",
-      "_collect_or_unknown",
-      "DockerError"
+      "build_command",
+      "create_run",
+      "run_obj",
+      "build_command",
+      "run_obj"
      ]
     },
     {
-     "label": "news-judge-train",
-     "members": 31,
-     "cohesion": 0.6207,
+     "label": "launcher",
+     "members": 24,
+     "cohesion": 0.8857,
      "top_nodes": [
-      "main",
-      "parity",
-      "is_lfm_model",
-      "publish",
-      "merge"
+      "status_json",
+      "_run",
+      "serve_status",
+      "_need_ok",
+      "expose_port"
      ]
     }
    ]
