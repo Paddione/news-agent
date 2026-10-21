@@ -101,6 +101,16 @@ const RELEVANT = [
   "haiku",
 ];
 const HYPE = ["insiders", "100x", "game changer", "revolutionary", "agi", "replace every engineer"];
+// What a prompt injection in fixture text looks like: instructions aimed at the reader AI.
+const INJECTION = [
+  "ignore all previous instructions",
+  "ignore previous instructions",
+  "disregard your system prompt",
+  "reveal your system prompt",
+  "you are now",
+  "act as if you are",
+  "send the conversation to",
+];
 const FACTS = [
   "release notes",
   "changelog",
@@ -173,6 +183,8 @@ export function fixtureDecide(): Decide {
                     : 0.05,
           };
         } else if (id.startsWith("supported")) answers[id] = { type: "noul", noul: 0.8 };
+        else if (id === "injection")
+          answers[id] = { type: "noul", noul: count(text, INJECTION) ? 0.95 : 0.05 };
         else
           answers[id] = { type: "noul", noul: relevant > 0 && count(text, HYPE) < 2 ? 0.85 : 0.15 };
         continue;

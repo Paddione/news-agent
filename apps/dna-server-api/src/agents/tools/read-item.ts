@@ -1,6 +1,7 @@
 import { Type } from "@earendil-works/pi-ai";
 import { defineAppTool, toolError, toolText } from "@dna/durable-agent";
 import type { Deps } from "../../deps.ts";
+import { agentText } from "../../news/injection.ts";
 import { clip, FixableError, requireItem } from "./shared.ts";
 
 export function readItem(deps: Deps) {
@@ -22,16 +23,18 @@ export function readItem(deps: Deps) {
         const cached = item.cacheId
           ? deps.store.sources.cachedById(item.cacheId)
           : deps.store.sources.cached(item.url);
-        const text =
+        const page =
           cached?.contentMd && cached.contentMd.length > (item.excerpt?.length ?? 0)
             ? cached.contentMd
             : item.excerpt;
+        // An item the judge could not clear gets the feed's words only: the page is where a payload hides.
+        const visible = agentText(item, page);
         const hfs = deps.store.news.latestHfs(item.id);
         const findings = deps.store.news.findings(item.id);
         const lines = [
           `#${item.id} ${item.title}`,
           `source: ${item.sourceName ?? "unknown"} | url: ${item.url}${item.discussionUrl ? ` | discussion: ${item.discussionUrl}` : ""}`,
-          `published: ${item.publishedAt ?? "unknown"} | status: ${item.status} | relevance ${Math.round((item.relevance ?? 0) * 100)} | worth ${Math.round((item.worth ?? 0) * 100)}`,
+          `published: ${item.publishedAt ?? "unknown"} | status: ${item.status} | relevance ${Math.round((item.relevance ?? 0) * 100)} | worth ${Math.round((item.worth ?? 0) * 100)}${item.injection === undefined ? "" : ` | injection ${Math.round(item.injection * 100)}`}`,
           hfs
             ? `jev hfs: ${hfs.ranked.map((r) => `${r.category} ${r.score}`).join(", ")}${hfs.suspectCombo ? " (suspect_combo)" : ""}`
             : "jev hfs: not classified yet",
@@ -39,7 +42,10 @@ export function readItem(deps: Deps) {
             (f) => `finding: ${f.summary} (actionability ${f.actionability ?? "unknown"})`,
           ),
           "",
-          clip(text, args.max_chars ?? 3000) || "No cached text. Use scrape_url to fetch the page.",
+          visible.restricted
+            ? `${visible.reason}. Use the title and the excerpt above, and tell the reader the page is withheld.`
+            : clip(visible.text, args.max_chars ?? 3000) ||
+              "No cached text. Use scrape_url to fetch the page.",
         ];
         return toolText(lines.join("\n"));
       } catch (error) {

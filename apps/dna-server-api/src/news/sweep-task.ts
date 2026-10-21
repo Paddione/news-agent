@@ -4,6 +4,7 @@
 import type { Context } from "@earendil-works/chord";
 import { defineTask, type RunningTask, type TaskRuntime } from "@earendil-works/pi-durable";
 import { runParallel } from "@dna/durable-agent";
+import { DEFAULT_INJECTION, injectionVerdict, type InjectionPolicy } from "@dna/jev";
 import type { Deps } from "../deps.ts";
 import type { Item } from "../db/repos/news.ts";
 import { fetchSource } from "./sources/index.ts";
@@ -263,7 +264,10 @@ export function createSweepTask(deps: Deps) {
           // Idempotent on replay: everything this sweep owns that still needs judging.
           const itemIds = store.news
             .itemsForSweep(sweepId, ["candidate"])
-            .filter((i) => i.relevance === undefined || i.worth === undefined)
+            .filter(
+              (i) =>
+                i.relevance === undefined || i.worth === undefined || i.injection === undefined,
+            )
             .map((i) => i.id);
           const credits = store.telemetry.creditsForSweep(sweepId);
           store.sweeps.update(sweepId, {
@@ -310,23 +314,63 @@ export function createSweepTask(deps: Deps) {
           if (work.cursor === 0) store.sweeps.phase(sweepId, "gate", "running");
           const relevanceMin = judge.policy("relevance", "relevance_min", 0.5);
           const worthMin = judge.policy("worth-attention", "worth_min", 0.5);
+          const policy: InjectionPolicy = {
+            reject_min: judge.policy("injection", "reject_min", DEFAULT_INJECTION.reject_min),
+            allow_max: judge.policy("injection", "allow_max", DEFAULT_INJECTION.allow_max),
+          };
           const chunk = store.news.items(work.itemIds.slice(work.cursor, work.cursor + GATE_CHUNK));
           await runParallel(chunk, 5, async (item) => {
-            if (item.relevance !== undefined && item.worth !== undefined) return;
+            if (
+              item.relevance !== undefined &&
+              item.worth !== undefined &&
+              item.injection !== undefined
+            )
+              return;
             try {
-              const [rel, worth] = await Promise.all([
-                judge.relevance(item, { sweepId }),
-                judge.worth(item, { sweepId }),
+              // Three questions, one per thing the gate decides: is it for this reader, is it worth it, and does
+              // its text address the agent reading it? Only the pieces that are missing are paid for.
+              const [rel, worth, injection] = await Promise.all([
+                item.relevance === undefined ? judge.relevance(item, { sweepId }) : undefined,
+                item.worth === undefined ? judge.worth(item, { sweepId }) : undefined,
+                item.injection === undefined ? judge.injection(item, { sweepId }) : undefined,
               ]);
-              const passed = rel.relevance >= relevanceMin && worth.worth >= worthMin;
-              store.news.updateItem(item.id, {
-                relevance: rel.relevance,
-                matchedTopic: rel.matchedTopic,
-                worth: worth.worth,
-                novelty: worth.novelty,
-                attention: judge.preAttention(rel.relevance, worth.worth, worth.novelty),
+              const score = injection?.score ?? item.injection;
+              const verdict = score === undefined ? "allow" : injectionVerdict(score, policy);
+              const relevance = rel?.relevance ?? item.relevance;
+              const worthNow = worth?.worth ?? item.worth;
+              const blocked = verdict === "reject";
+              const passed =
+                !blocked &&
+                relevance !== undefined &&
+                worthNow !== undefined &&
+                relevance >= relevanceMin &&
+                worthNow >= worthMin;
+              const patch: Parameters<typeof store.news.updateItem>[1] = {
                 status: passed ? "candidate" : "rejected",
-              });
+                attention: judge.preAttention(
+                  relevance ?? 0.5,
+                  worthNow ?? 0.5,
+                  worth?.novelty ?? item.novelty ?? 0,
+                ),
+              };
+              if (rel) {
+                patch.relevance = rel.relevance;
+                patch.matchedTopic = rel.matchedTopic;
+              }
+              if (worth) {
+                patch.worth = worth.worth;
+                patch.novelty = worth.novelty;
+              }
+              if (injection) patch.injection = injection.score;
+              if (blocked)
+                patch.lastError = `Prompt injection: the text addresses the agent (score ${score!.toFixed(2)} >= ${policy.reject_min}), dropped before the agent read it`;
+              store.news.updateItem(item.id, patch);
+              if (verdict === "restrict")
+                log.info("sweep.injection_restrict", {
+                  sweepId,
+                  itemId: item.id,
+                  score,
+                });
             } catch (error) {
               if (error instanceof JudgeUnavailableError) throw error;
               store.news.failItem(item.id, String(error));

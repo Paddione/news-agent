@@ -2,6 +2,7 @@ import { Type } from "@earendil-works/pi-ai";
 import { defineAppTool, toolError, toolText } from "@dna/durable-agent";
 import type { Deps } from "../../deps.ts";
 import { activeSweepId, clip, ref } from "./shared.ts";
+import { withheldReason } from "../../news/injection.ts";
 
 export function scrapeUrl(deps: Deps) {
   return defineAppTool({
@@ -20,6 +21,12 @@ export function scrapeUrl(deps: Deps) {
     execute: async (args, api) => {
       const item = args.item_id ? deps.store.news.item(args.item_id) : undefined;
       if (args.item_id && !item) return toolError(`No item #${args.item_id}.`);
+      const held = item ? withheldReason(item) : undefined;
+      if (held)
+        return toolError(`Page text for #${item!.id} is withheld: ${held}.`, [
+          "Use the title and feed excerpt instead (read_item shows them).",
+          "Tell the reader the page is withheld if they asked for it.",
+        ]);
       const url = item?.url ?? args.url;
       if (!url) return toolError("scrape_url needs item_id or url.");
       try {
