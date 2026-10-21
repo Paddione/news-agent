@@ -10,6 +10,7 @@ import {
   type Task,
 } from "@earendil-works/pi-durable";
 import { answerTextOf, loadPrompt } from "@dna/durable-agent";
+import { repoComponentCatalog } from "./repo-components.ts";
 import type { Deps } from "../deps.ts";
 import type { App } from "../runtime.ts";
 import { localProbe } from "../agents/model-route.ts";
@@ -161,6 +162,7 @@ export function createInvestigateTask(
 
             const prompt = loadPrompt(agentsDir, "investigator", "USER_PROMPT_investigate.md", {
               allowed_projects: deps.config.investigateRepos.join(", "),
+              repo_components: repoComponentCatalog(),
               repo,
               number,
               title: issue.title,
