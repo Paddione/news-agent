@@ -9,6 +9,7 @@ import type { CompactionState } from "@dna/sdk";
 import {
   createModelCatalog,
   DEFAULT_POINTS,
+  LOCAL_POINTS,
   fit,
   fits,
   installScriptedFaux,
@@ -116,8 +117,8 @@ export async function openApp(
             fallback: config.fallback && {
               baseUrl: config.fallback.baseUrl,
               model: config.fallback.model,
-              // Same window as local, so compaction points stay valid when a sweep switches models.
-              contextWindow: config.localContextWindow,
+              // The hosted model's real window (default 1M), so a fallback compact can drain a clogged local chat.
+              contextWindow: config.fallback.contextWindow,
               apiKeyEnv: ["DNA_FALLBACK_API_KEY", "META_API_KEY"],
               cost: config.fallback.cost,
             },
@@ -199,8 +200,14 @@ export async function openApp(
   };
   const agents = createAgents(deps);
 
+  // Small local windows (llama-server 153600) clog on the 100k/200k defaults: one sweep
+  // prompt jumps past the 16k reserve and every later sweep fails. Start those at 60k/100k.
+  const initialPoints =
+    config.provider === "local" && config.localContextWindow < 300_000
+      ? LOCAL_POINTS
+      : DEFAULT_POINTS;
   const compaction: CompactionSetting = store.settings.get("compaction", {
-    points: DEFAULT_POINTS,
+    points: initialPoints,
     enabled: true,
   });
   let window = 1_000_000;

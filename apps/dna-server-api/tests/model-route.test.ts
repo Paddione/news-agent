@@ -65,10 +65,18 @@ test("config: the fallback is off until DNA_FALLBACK_BASE_URL and DNA_FALLBACK_M
   assert.deepEqual(config.fallback, {
     baseUrl: "https://api.meta.ai/v1",
     model: HOSTED,
+    contextWindow: 1_000_000,
     dailySweeps: 24,
     minIntervalMinutes: 120,
     cost: { input: 0.1, output: 0.2 },
   });
+  const custom = loadConfig([], {
+    ...base,
+    DNA_FALLBACK_BASE_URL: "https://api.meta.ai/v1",
+    DNA_FALLBACK_MODEL: HOSTED,
+    DNA_FALLBACK_CONTEXT: "500000",
+  });
+  assert.equal(custom.fallback?.contextWindow, 500_000);
 });
 
 test("AgentModelRoute reconfigures the main conversation only when the routed model changes", async () => {
