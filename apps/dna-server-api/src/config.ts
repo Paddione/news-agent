@@ -24,6 +24,8 @@ export interface Config {
   fallback?: {
     baseUrl: string;
     model: string;
+    /** DNA_FALLBACK_CONTEXT: the hosted model's real window (default 1M). Local keeps DNA_LOCAL_CONTEXT. */
+    contextWindow: number;
     dailySweeps: number;
     /** DNA_FALLBACK_MIN_INTERVAL_MINUTES: at most one fallback sweep per this many minutes (default 120). */
     minIntervalMinutes: number;
@@ -204,6 +206,7 @@ function fallbackFrom(env: NodeJS.ProcessEnv): Config["fallback"] {
   return {
     baseUrl,
     model,
+    contextWindow: int(env.DNA_FALLBACK_CONTEXT, 1_000_000),
     dailySweeps: int(env.DNA_FALLBACK_DAILY_SWEEPS, 24),
     minIntervalMinutes: int(env.DNA_FALLBACK_MIN_INTERVAL_MINUTES, 120),
     cost: { input, output },

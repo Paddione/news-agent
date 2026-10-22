@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   DEFAULT_POINTS,
+  LOCAL_POINTS,
   fit,
   fits,
   fromPolicy,
@@ -18,6 +19,12 @@ test("defaults: background 100k, force 200k on a 1M window", () => {
     backgroundTokens: 100_000,
     keepRecentTokens: 20_000,
   });
+});
+
+test("small local windows start at 60k/100k with room past the force point", () => {
+  assert.deepEqual(LOCAL_POINTS, { background: 60_000, force: 100_000 });
+  assert.ok(fits(153_600, LOCAL_POINTS), JSON.stringify(LOCAL_POINTS));
+  assert.equal(153_600 - LOCAL_POINTS.force >= 16_384, true);
 });
 
 test("round trip through the pi-durable policy is stable", () => {
