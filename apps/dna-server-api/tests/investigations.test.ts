@@ -237,13 +237,15 @@ test("investigation end to end: startInvestigation completes with comment and la
     assert.ok(issueView.labels.includes("target:news-agent"));
 
     const issueObj = fauxTrack.issues.get(created.number);
-    assert.equal(issueObj.comments.length, 1);
+    assert.equal(issueObj.comments.length, 2);
     assert.ok(issueObj.comments[0].includes("## Kurzfazit"));
+    // Need-gate ran after done: score plus reason comment.
+    assert.ok(issueObj.comments[1].includes("Need-Score"));
 
     // Second startInvestigation for same issue returns false and does nothing
     const second = await startInvestigation(app, app.issues.repo, created.number);
     assert.equal(second, false);
-    assert.equal(issueObj.comments.length, 1);
+    assert.equal(issueObj.comments.length, 2);
   } finally {
     await cleanup();
   }
@@ -431,7 +433,8 @@ test("investigation: restart mid-run ends with exactly one report comment", asyn
       );
 
       const issueObj = reopenedFauxTrack.issues.get(created.number);
-      assert.equal(issueObj.comments.length, 1);
+      // One report comment plus the need-gate score comment.
+      assert.equal(issueObj.comments.length, 2);
     } finally {
       await reopened.close();
     }

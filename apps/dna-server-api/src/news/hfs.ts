@@ -14,9 +14,12 @@ import {
   JevLedger,
   listCommands,
   loadCommand,
+  NEED_QUESTION_VERSION,
+  type Questions,
   rankHfs,
   runCommand,
   type ScoreAnswer,
+  type State,
   type SystemOneResult,
   type Vars,
   normalized,
@@ -96,52 +99,88 @@ export class Judge {
         state: rendered.state,
         questions: rendered.questions,
       });
-      const record = this.ledger.record(result, { command: cmd.name, version: cmd.version });
-      this.deps.store.telemetry.jev({
-        command: cmd.name,
-        version: cmd.version,
-        provider: record.provider,
-        model: record.model,
-        questions: Object.keys(rendered.questions).length,
-        answers: result.answers,
-        inputTokens: record.inputTokens,
-        outputTokens: record.outputTokens,
-        costUsd: record.cost.amount,
-        costSource: record.cost.source,
-        elapsedMs: record.elapsedMs,
-        attempts: record.attempts,
-        itemId: ref.itemId,
-        sweepId: ref.sweepId,
-        conversationId: ref.conversationId,
-        callId: ref.callId,
-      });
-      this.deps.log?.debug("jev.call", {
-        command: name,
-        itemId: ref.itemId,
-        ms: record.elapsedMs,
-        cost: record.cost.amount,
-        sweepId: ref.sweepId,
-      });
-      return result;
+      return this.record(cmd.name, cmd.version, result, rendered, ref);
     } catch (error) {
-      this.ledger.fail(error, { command: cmd.name, version: cmd.version });
-      this.deps.store.telemetry.jev({
-        command: cmd.name,
-        version: cmd.version,
-        questions: 0,
-        error: String(error).slice(0, 500),
-        itemId: ref.itemId,
-        sweepId: ref.sweepId,
-        conversationId: ref.conversationId,
-        callId: ref.callId,
-      });
-      this.deps.log?.warn("jev.failed", {
-        command: name,
-        itemId: ref.itemId,
-        error: String(error),
-      });
+      this.fail(cmd.name, cmd.version, 0, error, ref);
       throw error;
     }
+  }
+
+  /**
+   * One ad-hoc question set without a versioned jev command (issue need-gate).
+   * Recorded in the ledger and telemetry as command "need".
+   */
+  async decide(state: State, questions: Questions, ref: JudgeRef = {}): Promise<SystemOneResult> {
+    const name = "need";
+    const version = NEED_QUESTION_VERSION;
+    try {
+      const result = await this.deps.decide(state, questions);
+      return this.record(name, version, result, { state, questions }, ref);
+    } catch (error) {
+      this.fail(name, version, Object.keys(questions).length, error, ref);
+      throw error;
+    }
+  }
+
+  private record(
+    name: string,
+    version: number,
+    result: SystemOneResult,
+    rendered: { state: unknown; questions: Record<string, unknown> },
+    ref: JudgeRef,
+  ): SystemOneResult {
+    const record = this.ledger.record(result, { command: name, version });
+    this.deps.store.telemetry.jev({
+      command: name,
+      version,
+      provider: record.provider,
+      model: record.model,
+      questions: Object.keys(rendered.questions).length,
+      answers: result.answers,
+      inputTokens: record.inputTokens,
+      outputTokens: record.outputTokens,
+      costUsd: record.cost.amount,
+      costSource: record.cost.source,
+      elapsedMs: record.elapsedMs,
+      attempts: record.attempts,
+      itemId: ref.itemId,
+      sweepId: ref.sweepId,
+      conversationId: ref.conversationId,
+      callId: ref.callId,
+    });
+    this.deps.log?.debug("jev.call", {
+      command: name,
+      itemId: ref.itemId,
+      ms: record.elapsedMs,
+      cost: record.cost.amount,
+      sweepId: ref.sweepId,
+    });
+    return result;
+  }
+
+  private fail(
+    name: string,
+    version: number,
+    questions: number,
+    error: unknown,
+    ref: JudgeRef,
+  ): void {
+    this.ledger.fail(error, { command: name, version });
+    this.deps.store.telemetry.jev({
+      command: name,
+      version,
+      questions,
+      error: String(error).slice(0, 500),
+      itemId: ref.itemId,
+      sweepId: ref.sweepId,
+      conversationId: ref.conversationId,
+      callId: ref.callId,
+    });
+    this.deps.log?.warn("jev.failed", {
+      command: name,
+      itemId: ref.itemId,
+      error: String(error),
+    });
   }
 
   async relevance(
