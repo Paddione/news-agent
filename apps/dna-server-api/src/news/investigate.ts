@@ -21,6 +21,7 @@ import {
   targetLabels,
   type InvestigationReport,
 } from "./investigation-report.ts";
+import { runNeedGate } from "./need.ts";
 
 export const INVESTIGATE_MAX_ATTEMPTS = 3;
 export const CATCHUP_MINUTES = 10;
@@ -295,6 +296,23 @@ export function createInvestigateTask(
             targets: report.targets,
             commentUrl,
           });
+
+          // Need-gate: score the finished investigation and record it on the
+          // issue. Never fails the investigation itself.
+          try {
+            await runNeedGate(
+              {
+                issues: deps.issues,
+                graph: deps.graph,
+                decide: (state, questions) => deps.judge.decide(state, questions),
+                allowed: deps.config.investigateRepos,
+                log: deps.log,
+              },
+              { repo, number, title: issue.title, reportMd, targets: report.targets },
+            );
+          } catch (error) {
+            deps.log.warn("need_gate.failed", { repo, number, error: String(error) });
+          }
 
           if (cardId) {
             const card = deps.store.news.card(cardId);
