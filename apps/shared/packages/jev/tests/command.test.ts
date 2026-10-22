@@ -36,11 +36,12 @@ const SAMPLE = {
   claims: ["Task records carry startedAt", "It ships a GUI"],
 };
 
-test("all six commands load, render and validate", () => {
+test("all seven commands load, render and validate", () => {
   assert.deepEqual(listCommands(DIR), [
     "claim-support",
     "hfs",
     "importance",
+    "injection",
     "relevance",
     "same-story",
     "worth-attention",
