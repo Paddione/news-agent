@@ -35,6 +35,7 @@
   },
   "policy": {
     "label_threshold": 50,
+    "label_thresholds": { "hype": 30 },
     "tie_order": ["signal", "facts", "hype"],
     "attention": {
       "signal": 0.5,
