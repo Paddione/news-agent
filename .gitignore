@@ -10,3 +10,5 @@ test-results/
 .playwright-cli/
 # Local repo-code-graph artifacts (same convention as Bachelorprojekt)
 .codebase-memory/
+# dev-flow-plan: phase-events bleiben im Plan-Stand nachvollziehbar
+!.agents/plans/*/phase-events.log
