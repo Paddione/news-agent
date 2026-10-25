@@ -51,6 +51,8 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: logs
+              mountPath: /src/logs
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -72,6 +74,8 @@ spec:
             periodSeconds: 15
       volumes:
         - name: tmp
+          emptyDir: {}
+        - name: logs
           emptyDir: {}
 ---
 apiVersion: v1

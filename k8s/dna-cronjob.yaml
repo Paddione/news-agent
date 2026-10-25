@@ -38,7 +38,7 @@ spec:
                 - name: DNA_API_URL
                   value: http://dna-api:4850
                 - name: DNA_DEVICE_NAME
-                  value: local
+                  value: cluster
                 - name: DNA_CRON_SCHEDULE
                   value: "* * * * *"
                 - name: DNA_CRON_TOKEN
@@ -59,3 +59,13 @@ spec:
                 limits:
                   cpu: 500m
                   memory: 512Mi
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+                - name: logs
+                  mountPath: /src/logs
+          volumes:
+            - name: tmp
+              emptyDir: {}
+            - name: logs
+              emptyDir: {}

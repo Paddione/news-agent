@@ -21,6 +21,14 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [gpu-cluster]
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:
@@ -51,6 +59,8 @@ spec:
               value: faux
             - name: DNA_CRON_SCHEDULE
               value: "* * * * *"
+            - name: DNA_DEVICE_NAME
+              value: cluster
             - name: OPENROUTER_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -93,6 +103,8 @@ spec:
               mountPath: /app/data
             - name: tmp
               mountPath: /tmp
+            - name: logs
+              mountPath: /src/logs
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -117,6 +129,8 @@ spec:
           persistentVolumeClaim:
             claimName: dna-api-data
         - name: tmp
+          emptyDir: {}
+        - name: logs
           emptyDir: {}
 ---
 apiVersion: v1
