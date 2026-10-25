@@ -44,6 +44,14 @@ test("ties break signal, facts, hype", () => {
   );
 });
 
+test("a per-category threshold labels low-scoring hype without loosening the others", () => {
+  const r = rankHfs(
+    { hype: s(0.9), facts: s(2.7), signal: s(1.2) },
+    { label_threshold: 50, label_thresholds: { hype: 30 } },
+  );
+  assert.deepEqual(r.labels, ["facts", "hype"]);
+});
+
 test("hype and signal without facts is flagged", () => {
   const r = rankHfs({ hype: s(2.4), facts: s(0.6), signal: s(2.1) });
   assert.equal(r.suspectCombo, true);

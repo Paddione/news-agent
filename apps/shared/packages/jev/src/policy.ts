@@ -25,6 +25,8 @@ export interface HfsResult {
 
 export interface HfsPolicy {
   label_threshold?: number;
+  /** Per-category override of label_threshold: a category whose score runs low can still earn its label. */
+  label_thresholds?: Partial<Record<HfsCategory, number>>;
   tie_order?: HfsCategory[];
 }
 
@@ -55,7 +57,8 @@ export function asScore(answer: Answer | undefined, id: string): ScoreAnswer {
 
 /** Always ranks all three categories, highest first, ties broken by tie_order. */
 export function rankHfs(answers: Record<string, Answer>, policy: HfsPolicy = {}): HfsResult {
-  const threshold = policy.label_threshold ?? 50;
+  const base = policy.label_threshold ?? 50;
+  const threshold = (c: HfsCategory) => policy.label_thresholds?.[c] ?? base;
   const order = policy.tie_order ?? ["signal", "facts", "hype"];
   const ranked = HFS.map((category) => {
     const answer = asScore(answers[category], category);
@@ -68,10 +71,12 @@ export function rankHfs(answers: Record<string, Answer>, policy: HfsPolicy = {})
   return {
     ranked,
     primary: ranked[0].category,
-    labels: ranked.filter((r) => r.score >= threshold).map((r) => r.category),
+    labels: ranked.filter((r) => r.score >= threshold(r.category)).map((r) => r.category),
     scores,
     suspectCombo:
-      scores.hype >= threshold && scores.signal >= threshold && scores.facts < threshold,
+      scores.hype >= threshold("hype") &&
+      scores.signal >= threshold("signal") &&
+      scores.facts < threshold("facts"),
   };
 }
 
