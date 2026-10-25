@@ -3,6 +3,7 @@
 // DNA_PROVIDER=local serves one open-weight model from an OpenAI-compatible endpoint (llama-server).
 import { envApiKeyAuth } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
+import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
 import { createModels, createProvider, type MutableModels } from "@earendil-works/pi-ai/models";
 import { openrouterProvider } from "@earendil-works/pi-ai/providers/openrouter";
 import type { ModelRef } from "@earendil-works/pi-durable";
@@ -94,6 +95,10 @@ export interface FallbackOptions {
   apiKeyEnv: string[];
   /** USD per 1M tokens, for the cost telemetry. */
   cost: { input: number; output: number };
+  /** Wire protocol; some hosted models only speak the Responses API (default openai-completions). */
+  api?: "openai-completions" | "openai-responses";
+  /** Extra request headers, e.g. a gateway's session or client id. */
+  headers?: Record<string, string>;
 }
 
 export interface ModelCatalog {
@@ -214,9 +219,10 @@ function localCatalog(models: MutableModels, local: LocalOptions | undefined): M
           {
             id: fallback.model,
             name: fallback.model,
-            api: "openai-completions",
+            api: fallback.api ?? "openai-completions",
             provider: "fallback",
             baseUrl: fallback.baseUrl,
+            headers: fallback.headers,
             input: ["text"],
             cost: { ...fallback.cost, cacheRead: 0, cacheWrite: 0 },
             reasoning: false,
@@ -224,7 +230,7 @@ function localCatalog(models: MutableModels, local: LocalOptions | undefined): M
             maxTokens: 8192,
           },
         ],
-        api: openAICompletionsApi(),
+        api: fallback.api === "openai-responses" ? openAIResponsesApi() : openAICompletionsApi(),
       }),
     );
   const info: ModelInfo = {

@@ -30,6 +30,10 @@ export interface Config {
     /** DNA_FALLBACK_MIN_INTERVAL_MINUTES: at most one fallback sweep per this many minutes (default 120). */
     minIntervalMinutes: number;
     cost: { input: number; output: number };
+    /** DNA_FALLBACK_API: openai-completions (default) or openai-responses. */
+    api: "openai-completions" | "openai-responses";
+    /** DNA_FALLBACK_HEADERS: a JSON object of extra request headers. */
+    headers?: Record<string, string>;
   };
   jevBackend: "auto" | "fixture" | "mock" | "openrouter" | "typesafe" | "local";
   /** JEV_BACKEND=local: the judge's llama-server, its manifest, and the GPU session command. */
@@ -210,5 +214,7 @@ function fallbackFrom(env: NodeJS.ProcessEnv): Config["fallback"] {
     dailySweeps: int(env.DNA_FALLBACK_DAILY_SWEEPS, 24),
     minIntervalMinutes: int(env.DNA_FALLBACK_MIN_INTERVAL_MINUTES, 120),
     cost: { input, output },
+    api: env.DNA_FALLBACK_API?.trim() === "openai-responses" ? "openai-responses" : "openai-completions",
+    ...(env.DNA_FALLBACK_HEADERS?.trim() ? { headers: JSON.parse(env.DNA_FALLBACK_HEADERS) } : {}),
   };
 }

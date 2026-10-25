@@ -49,3 +49,14 @@ test("a local catalog with a fallback serves both models, each from its own prov
   assert.deepEqual(catalog.ref(fallback.model), { provider: "fallback", modelId: fallback.model });
   assert.deepEqual(catalog.info(fallback.model)?.cost, { input: 0.1, output: 0.2 });
 });
+
+test("a fallback can speak the Responses API and send its own headers", () => {
+  const headers = { "x-opencode-session": "dna-cluster" };
+  const catalog = createModelCatalog({
+    provider: "local",
+    local: { ...local, fallback: { ...fallback, api: "openai-responses", headers } },
+  });
+  const model = catalog.models.getModel("fallback", fallback.model);
+  assert.equal(model?.api, "openai-responses");
+  assert.deepEqual(model?.headers, headers);
+});

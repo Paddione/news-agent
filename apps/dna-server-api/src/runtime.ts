@@ -121,6 +121,8 @@ export async function openApp(
               contextWindow: config.fallback.contextWindow,
               apiKeyEnv: ["DNA_FALLBACK_API_KEY", "META_API_KEY"],
               cost: config.fallback.cost,
+              api: config.fallback.api,
+              headers: config.fallback.headers,
             },
           }
         : undefined,
