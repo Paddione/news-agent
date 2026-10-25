@@ -21,6 +21,14 @@ export interface FeedbackResult {
 }
 
 const mentions = (text: string, term: string) => text.toLowerCase().includes(term.toLowerCase());
+/** Looser than `mentions`: every word of the term appears, a plural s aside ("An MCP server" names "MCP servers"). */
+const names = (text: string, term: string) => {
+  const lower = text.toLowerCase();
+  return term
+    .toLowerCase()
+    .split(/\s+/)
+    .every((w) => lower.includes(w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w));
+};
 
 export function applyFeedback(
   store: Store,
@@ -41,7 +49,10 @@ export function applyFeedback(
     const matched = item?.matchedTopic
       ? topics.find((k) => k.term.toLowerCase() === item.matchedTopic!.toLowerCase())
       : undefined;
-    const hits = matched ? [matched] : topics.filter((k) => mentions(text, k.term));
+    // jev picks the closest topic even for off-topic items, so a down-vote only lowers a matched topic the text
+    // names: "not for me" on an essay must not cost the topic the essay was squeezed into.
+    const trusted = matched && (input.signal === "more" || names(text, matched.term)) ? matched : undefined;
+    const hits = trusted ? [trusted] : topics.filter((k) => mentions(text, k.term));
     for (const k of hits) nudge(k, input.signal === "more" ? MORE : LESS);
     // The card's source learns too: sweeps rank by source weight as well as topic weight.
     const source = sourceFor(store, { sourceId: item?.sourceId, url: item?.url ?? card.url ?? "" });

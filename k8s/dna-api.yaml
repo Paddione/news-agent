@@ -45,8 +45,10 @@ spec:
               value: 0.0.0.0
             - name: DNA_PORT
               value: "4850"
+            # The migrated state sits in live/ on the PVC (copied from ~/news-agent-data/live); the root holds only
+            # lost+found and an empty store the pod created before this pointed here.
             - name: DNA_DATA_DIR
-              value: /app/data
+              value: /app/data/live
             - name: DNA_PROVIDER
               value: openrouter
             - name: DNA_MODE
