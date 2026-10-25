@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dna-api
+  namespace: workspace
+  labels:
+    app: dna-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dna-api
+  template:
+    metadata:
+      labels:
+        app: dna-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: api
+          image: ghcr.io/paddione/dna-api:cluster
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4850
+              name: http
+          env:
+            - name: DNA_ENV_FILE
+              value: none
+            - name: DNA_HOST
+              value: 0.0.0.0
+            - name: DNA_PORT
+              value: "4850"
+            - name: DNA_DATA_DIR
+              value: /app/data
+            - name: DNA_PROVIDER
+              value: openrouter
+            - name: DNA_MODE
+              value: live
+            - name: DNA_SEARCH_MODE
+              value: web
+            - name: DNA_ISSUE_TRACKER
+              value: gh
+            - name: DNA_INVESTIGATE
+              value: faux
+            - name: DNA_CRON_SCHEDULE
+              value: "* * * * *"
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dna-secrets
+                  key: openrouter-api-key
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dna-secrets
+                  key: openai-api-key
+            - name: FIRECRAWL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dna-secrets
+                  key: firecrawl-api-key
+                  optional: true
+            - name: META_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dna-secrets
+                  key: meta-api-key
+                  optional: true
+            - name: DNA_CLIENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dna-secrets
+                  key: dna-client-token
+            - name: DNA_CRON_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dna-secrets
+                  key: dna-cron-token
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dna-secrets
+                  key: gh-token
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 4850
+            initialDelaySeconds: 20
+            periodSeconds: 15
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: dna-api-data
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dna-api
+  namespace: workspace
+  labels:
+    app: dna-api
+spec:
+  selector:
+    app: dna-api
+  ports:
+    - name: http
+      port: 4850
+      targetPort: 4850

@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dna-hub
+  namespace: workspace
+  labels:
+    app: dna-hub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dna-hub
+  template:
+    metadata:
+      labels:
+        app: dna-hub
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: hub
+          image: ghcr.io/paddione/dna-hub:cluster
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4851
+              name: http
+          env:
+            - name: DNA_ENV_FILE
+              value: none
+            - name: DNA_HUB_HOST
+              value: 0.0.0.0
+            - name: DNA_HUB_PORT
+              value: "4851"
+            - name: DNA_HUB_HOSTS
+              value: dna.devmesh.korczewski.de
+            - name: DNA_API_URL
+              value: http://dna-api:4850
+            - name: DNA_TARGET
+              value: local
+            - name: DNA_CLIENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dna-secrets
+                  key: dna-client-token
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /hub/healthz
+              port: 4851
+            initialDelaySeconds: 20
+            periodSeconds: 15
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dna-hub
+  namespace: workspace
+  labels:
+    app: dna-hub
+spec:
+  selector:
+    app: dna-hub
+  ports:
+    - name: http
+      port: 4851
+      targetPort: 4851
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dna-hub
+  namespace: workspace
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dna.devmesh.korczewski.de
+      http:
+        paths:
+          - backend:
+              service:
+                name: dna-hub
+                port:
+                  number: 4851
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - dna.devmesh.korczewski.de

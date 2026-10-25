@@ -20,7 +20,8 @@
     "@resvg/resvg-js": "2.6.2",
     "express": "5.3.0",
     "fast-xml-parser": "5.11.2",
-    "linkedom": "0.18.13"
+    "linkedom": "0.18.13",
+    "tsx": "4.23.15"
   },
   "devDependencies": {
     "@types/express": "5.0.6"

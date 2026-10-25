@@ -1,0 +1,73 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dna-api
+  namespace: workspace
+spec:
+  podSelector:
+    matchLabels:
+      app: dna-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 4850
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dna-hub
+  namespace: workspace
+spec:
+  podSelector:
+    matchLabels:
+      app: dna-hub
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 4851
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - ports:
+        - protocol: TCP
+          port: 4850
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dna-tick
+  namespace: workspace
+spec:
+  podSelector:
+    matchLabels:
+      app: dna-tick
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - ports:
+        - protocol: TCP
+          port: 4850

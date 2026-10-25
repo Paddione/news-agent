@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dna-tick
+  namespace: workspace
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: dna-tick
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          imagePullSecrets:
+            - name: ghcr-pull-secret
+          containers:
+            - name: tick
+              image: ghcr.io/paddione/dna-api:cluster
+              imagePullPolicy: IfNotPresent
+              command:
+                - node
+                - --import
+                - tsx
+                - apps/dna-server-cron/src/main.ts
+                - tick
+              env:
+                - name: DNA_ENV_FILE
+                  value: none
+                - name: DNA_API_URL
+                  value: http://dna-api:4850
+                - name: DNA_DEVICE_NAME
+                  value: local
+                - name: DNA_CRON_SCHEDULE
+                  value: "* * * * *"
+                - name: DNA_CRON_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: dna-secrets
+                      key: dna-cron-token
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
