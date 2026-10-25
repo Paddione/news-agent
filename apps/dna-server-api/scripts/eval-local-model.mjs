@@ -74,7 +74,8 @@ async function main() {
   for (const p of PROMPTS) {
     try {
       const { latency, toolName, content } = await chat(p);
-      const expectsTool = p.id.startsWith("tool-") && p.id !== "tool-noop";
+      const expectsTool =
+        (p.id.startsWith("tool-") && p.id !== "tool-noop") || p.id === "multi";
       const gotTool = toolName !== null;
       const ok = expectsTool ? gotTool : !gotTool || content.trim().length > 0;
       if (ok) okCount++;
