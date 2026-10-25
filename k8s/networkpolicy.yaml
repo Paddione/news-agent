@@ -23,6 +23,15 @@ spec:
     - ports:
         - protocol: TCP
           port: 443
+    # PK-Desktop on the tailnet: llama-server (agent model) and the news judge.
+    - to:
+        - ipBlock:
+            cidr: 100.76.165.106/32
+      ports:
+        - protocol: TCP
+          port: 1919
+        - protocol: TCP
+          port: 8010
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

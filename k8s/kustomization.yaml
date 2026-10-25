@@ -7,3 +7,10 @@ resources:
   - dna-hub.yaml
   - dna-cronjob.yaml
   - networkpolicy.yaml
+# Copy of /mnt/f/models/news-judge/current/manifest.json: refresh it when the judge is retrained, the runtime refuses
+# to start on a template_sha mismatch.
+configMapGenerator:
+  - name: dna-judge
+    files:
+      - judge/manifest.json
+      - judge/news-gpu-session

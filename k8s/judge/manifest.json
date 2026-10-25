@@ -1,0 +1,21 @@
+{
+  "name": "news-judge",
+  "version": "2026-10-25-ssbal-lfm2.5-1.2b",
+  "gguf": "news-judge-q8_0.gguf",
+  "base_model": "LiquidAI/LFM2.5-1.2B-Instruct",
+  "temperature": 1.25,
+  "min_mass": 0.782,
+  "template_sha": "6cdc08acb7d3c373aeedbf824451919f831a2fc6279e7049aaaea8172b8fa79a",
+  "commands": {
+    "same-story": 4,
+    "worth-attention": 1,
+    "claim-support": 1,
+    "relevance": 1,
+    "hfs": 2,
+    "importance": 1,
+    "injection": 1
+  },
+  "temperatures": {
+    "injection": 0.5
+  }
+}

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Pod variant of news-gpu-session: the judge runs permanently on PK-Desktop (news-judge-tailnet.service, tailnet only),
+# so acquire and heartbeat only check /health and release has nothing to give back.
+case "$1" in
+  release) exit 0 ;;
+  acquire | heartbeat)
+    exec node -e 'fetch(process.argv[1]).then((r) => process.exit(r.ok ? 0 : 1), (e) => { console.error(String(e)); process.exit(1); })' \
+      "$JEV_LOCAL_BASE_URL/health"
+    ;;
+  *) echo "unknown command: $1" >&2; exit 2 ;;
+esac
