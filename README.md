@@ -211,6 +211,12 @@ Almost all model spend is the agent re-reading its chat on every tool turn, so i
 
 ---
 
+## Local models
+
+news-agent can run against any OpenAI-compatible endpoint (llama-server) instead of OpenRouter by setting `DNA_PROVIDER=local`. Swapping the served model is a matter of restarting llama-server with a different GGUF and updating three env vars — no code change. See [`docs/local-models.md`](docs/local-models.md) for the Qwen slot and the Nemotron 3.5 Bolt E4B candidate, including serving recipes and a comparison workflow.
+
+---
+
 ## Durability
 
 <p align="center">
