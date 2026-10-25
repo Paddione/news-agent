@@ -1,7 +1,7 @@
 ---
 title: Nemotron 3.5 Bolt E4B local integration
 domains: [durable-agent, dna-server-api, docs]
-status: staged
+status: completed
 ---
 
 # Nemotron 3.5 Bolt E4B — local integration
