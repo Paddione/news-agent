@@ -14,8 +14,8 @@
   "scripts": {
     "check": "npm run check --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
-    "lint": "oxlint apps/dna-* apps/shared",
-    "fmt": "oxfmt -c shared-app-configuration/.oxfmtrc.json apps/dna-* apps/shared",
+    "eval:local-model": "node apps/dna-server-api/scripts/eval-local-model.mjs",
+  "lint": "oxlint apps/dna-* apps/shared",    "fmt": "oxfmt -c shared-app-configuration/.oxfmtrc.json apps/dna-* apps/shared",
     "fmt:check": "oxfmt --check -c shared-app-configuration/.oxfmtrc.json apps/dna-* apps/shared"
   },
   "devDependencies": {
