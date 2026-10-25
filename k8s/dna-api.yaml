@@ -61,12 +61,22 @@ spec:
               value: swift-1.5-qwen3.8-27b-iq3xxs
             - name: DNA_RESEARCH_MODEL
               value: swift-1.5-qwen3.8-27b-iq3xxs
+            # Fallback: OpenCode Go (flat subscription); muse-spark-1.3-contributor only speaks the Responses API there.
             - name: DNA_FALLBACK_BASE_URL
-              value: https://api.meta.ai/v1
+              value: https://opencode.ai/zen/go/v1
             - name: DNA_FALLBACK_MODEL
               value: muse-spark-1.3-contributor
+            - name: DNA_FALLBACK_API
+              value: openai-responses
+            - name: DNA_FALLBACK_HEADERS
+              value: '{"x-opencode-session":"dna-cluster","user-agent":"durable-news-agent/0.1"}'
+            - name: DNA_FALLBACK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dna-opencode
+                  key: api-key
             - name: DNA_FALLBACK_COST
-              value: "0.1,0.2"
+              value: "0,0"
             - name: DNA_FALLBACK_DAILY_SWEEPS
               value: "24"
             - name: JEV_BACKEND

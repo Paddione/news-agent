@@ -69,14 +69,19 @@ test("config: the fallback is off until DNA_FALLBACK_BASE_URL and DNA_FALLBACK_M
     dailySweeps: 24,
     minIntervalMinutes: 120,
     cost: { input: 0.1, output: 0.2 },
+    api: "openai-completions",
   });
   const custom = loadConfig([], {
     ...base,
     DNA_FALLBACK_BASE_URL: "https://api.meta.ai/v1",
     DNA_FALLBACK_MODEL: HOSTED,
     DNA_FALLBACK_CONTEXT: "500000",
+    DNA_FALLBACK_API: "openai-responses",
+    DNA_FALLBACK_HEADERS: '{"x-opencode-session":"dna-cluster"}',
   });
   assert.equal(custom.fallback?.contextWindow, 500_000);
+  assert.equal(custom.fallback?.api, "openai-responses");
+  assert.deepEqual(custom.fallback?.headers, { "x-opencode-session": "dna-cluster" });
 });
 
 test("AgentModelRoute reconfigures the main conversation only when the routed model changes", async () => {
