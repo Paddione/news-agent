@@ -17,12 +17,12 @@ Der lokale Judge hält die GPU nur während `jev` in Benutzung ist
 
 Ein `JudgeUnavailableError` bricht den Sweep nicht ab: die Phase geht mit
 durablem Backoff (`BACKOFF_MS = [30_000, 120_000, 480_000]`,
-`apps/dna-server-api/src/news/sweep-task.ts:59`) in die Retry-Phase
-(`sweep-task.ts:52`, `:126-127`, `:509-510`). Nach erschöpften Versuchen
-(`:155-178`) wird der Fehler weitergereicht (`:331`, `:446`).
+`apps/dna-server-api/src/news/sweep-task.ts:60`) in die Retry-Phase
+(`sweep-task.ts:53`, `:127-128`, `:553-554`). Nach erschöpften Versuchen
+(`:156-179`) wird der Fehler weitergereicht (`:375`, `:490`).
 
 ## Telemetrie
 
 Jeder `jev`-Aufruf wird bepreist und gespeichert
-(`apps/dna-server-api/src/news/hfs.ts:96-124`); Fehlschläge landen als
-`jev.failed`-Warnung in den Logs (`hfs.ts:134`).
+(`apps/dna-server-api/src/news/hfs.ts:133-169`); Fehlschläge landen als
+`jev.failed`-Warnung in den Logs (`hfs.ts:179`).
