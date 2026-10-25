@@ -18,6 +18,8 @@ export interface JudgeManifest {
   gguf: string;
   base_model: string;
   temperature: number;
+  /** Optional per-question (command) temperature override, e.g. { injection: 1 }. */
+  temperatures?: Record<string, number>;
   min_mass: number;
   template_sha: string;
   commands: Record<string, number>;
@@ -93,6 +95,7 @@ export class LocalJev {
     prompt: string,
     labels: string[],
     signal?: AbortSignal,
+    opts: { questionId?: string } = {},
   ): Promise<{ probs: number[]; mass: number }> {
     const res = (await this.post(
       "/completion",
@@ -115,7 +118,9 @@ export class LocalJev {
       throw new ContractError(
         `Judge put ${mass.toFixed(3)} on the labels, below min_mass ${this.opts.manifest.min_mass}.`,
       );
-    const t = this.opts.manifest.temperature;
+    const t = opts.questionId !== undefined
+      ? (this.opts.manifest.temperatures?.[opts.questionId] ?? this.opts.manifest.temperature)
+      : this.opts.manifest.temperature;
     const scaled = raw.map((p) => (p > 0 ? Math.pow(p / mass, 1 / t) : 0));
     const z = scaled.reduce((a, b) => a + b, 0);
     return { probs: scaled.map((p) => p / z), mass };
@@ -131,7 +136,9 @@ export class LocalJev {
     const started = performance.now();
     const answers: Record<string, Answer> = {};
     for (const [id, q] of Object.entries(questions)) {
-      const { probs } = await this.distribution(renderPrompt(state, q), labelsFor(q), opts.signal);
+      const { probs } = await this.distribution(renderPrompt(state, q), labelsFor(q), opts.signal, {
+        questionId: id,
+      });
       answers[id] = answerFrom(q, probs);
     }
     const response = {

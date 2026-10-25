@@ -130,3 +130,18 @@ test("temperature from the manifest sharpens or flattens", async () => {
   const { probs } = await jev.distribution("p", ["yes", "no"]);
   assert.equal(Number(probs[0].toFixed(4)), 0.6667); // sqrt(0.8)/(sqrt(0.8)+sqrt(0.2))
 });
+
+test("per-question temperature overrides the global one, others fall back", async () => {
+  const jev = new LocalJev({
+    baseUrl: "http://judge",
+    manifest: manifest({ temperature: 2, temperatures: { injection: 1 } }),
+    fetchImpl: stub({ yes: 0.8, no: 0.2 }).fetchImpl,
+  });
+  await jev.init();
+  const sharp = await jev.distribution("p", ["yes", "no"], undefined, { questionId: "injection" });
+  assert.equal(Number(sharp.probs[0].toFixed(4)), 0.8); // t=1: raw mass-normalized
+  const flat = await jev.distribution("p", ["yes", "no"], undefined, { questionId: "relevance" });
+  assert.equal(Number(flat.probs[0].toFixed(4)), 0.6667); // t=2 fallback
+  const legacy = await jev.distribution("p", ["yes", "no"]);
+  assert.equal(Number(legacy.probs[0].toFixed(4)), 0.6667); // no id: global
+});
