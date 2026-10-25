@@ -43,6 +43,24 @@ test("show me more and less move the matched topic weight, clamped", () => {
   }
 });
 
+test("a down-vote leaves a matched topic alone when the card never names it", () => {
+  const { store, cleanup } = tempStore();
+  try {
+    const card = seedCard(store, "SpeedCrunch 1.1, a desktop calculator", "Claude Code");
+    const before = store.taste.findKeyword("topic", "Claude Code")!.weight;
+    const less = applyFeedback(store, card, { signal: "less" });
+    assert.equal(store.taste.findKeyword("topic", "Claude Code")!.weight, before);
+    assert.ok(!less.changed.some((c) => c.kind === "topic"));
+    applyFeedback(store, card, { signal: "more" });
+    assert.equal(
+      store.taste.findKeyword("topic", "Claude Code")!.weight,
+      Math.round((before + 0.1) * 100) / 100,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
 test("labels move section keywords found in the card", () => {
   const { store, cleanup } = tempStore();
   try {
