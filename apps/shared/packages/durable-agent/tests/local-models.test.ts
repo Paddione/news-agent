@@ -5,8 +5,8 @@ import { createModelCatalog } from "../src/index.ts";
 
 const local = {
   baseUrl: "http://127.0.0.1:1919/v1",
-  model: "Qwen3.8-27B-gsq-iq3xxs",
-  contextWindow: 153600,
+  model: "qwen3.8-27b-gsq-rco-iq2s",
+  contextWindow: 139264,
 };
 
 test("local catalog exposes one free model at the configured endpoint", () => {
@@ -15,7 +15,7 @@ test("local catalog exposes one free model at the configured endpoint", () => {
   assert.deepEqual(catalog.defaultModel, { provider: "local", modelId: local.model });
   const [info] = catalog.list();
   assert.equal(catalog.list().length, 1);
-  assert.equal(info.contextWindow, 153600);
+  assert.equal(info.contextWindow, 139264);
   assert.deepEqual(info.cost, { input: 0, output: 0 });
 });
 

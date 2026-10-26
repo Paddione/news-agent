@@ -93,7 +93,7 @@ async function main() {
     return;
   }
   if (cmd === "label" && input && output) {
-    const model = values.model ?? "Qwen3.8-27B-gsq-iq3xxs";
+    const model = values.model ?? "qwen3.8-27b-gsq-rco-iq2s";
     // The teacher is untrained on our labels, so no mass floor and no temperature: store what it said.
     const teacher = new LocalJev({
       baseUrl: values["base-url"] ?? "http://127.0.0.1:1919",

@@ -93,7 +93,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
   const provider =
     env.DNA_PROVIDER === "faux" ? "faux" : env.DNA_PROVIDER === "local" ? "local" : "openrouter";
   const fallbackModel =
-    provider === "local" ? "Qwen3.8-27B-gsq-iq3xxs" : "anthropic/claude-haiku-5.5";
+    provider === "local" ? "qwen3.8-27b-gsq-rco-iq2s" : "anthropic/claude-haiku-5.5";
   const searchMode = env.DNA_SEARCH_MODE?.trim() || "auto";
   const config: Config = {
     device: String(values.device ?? env.DNA_DEVICE_NAME ?? "local"),

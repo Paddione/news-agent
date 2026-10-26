@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ModelRoute } from "../src/agents/model-route.ts";
 
-const LOCAL = "swift-1.5-qwen3.8-27b-iq3xxs";
+const LOCAL = "qwen3.8-27b-gsq-rco-iq2s";
 const HOSTED = "muse-spark-1.3-contributor";
 
 function route(

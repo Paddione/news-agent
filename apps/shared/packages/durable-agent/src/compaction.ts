@@ -18,7 +18,7 @@ export interface CompactionPolicyShape {
 }
 
 export const DEFAULT_POINTS: CompactionPoints = { background: 100_000, force: 200_000 };
-/** Safe starting points for small local windows (e.g. 153600): force leaves ~54k of reserve. */
+/** Safe starting points for small local windows (e.g. 139264): force leaves ~39k of reserve. */
 export const LOCAL_POINTS: CompactionPoints = { background: 60_000, force: 100_000 };
 export const STEP = 512;
 export const MIN_BACKGROUND = 4_096;
