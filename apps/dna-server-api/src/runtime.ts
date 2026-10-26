@@ -202,7 +202,7 @@ export async function openApp(
   };
   const agents = createAgents(deps);
 
-  // Small local windows (llama-server 153600) clog on the 100k/200k defaults: one sweep
+  // Small local windows (llama-server 139264) clog on the 100k/200k defaults: one sweep
   // prompt jumps past the 16k reserve and every later sweep fails. Start those at 60k/100k.
   const initialPoints =
     config.provider === "local" && config.localContextWindow < 300_000

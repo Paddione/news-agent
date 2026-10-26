@@ -130,7 +130,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     model: env.DNA_MODEL ?? fallbackModel,
     researchModel: env.DNA_RESEARCH_MODEL ?? env.DNA_MODEL ?? fallbackModel,
     localBaseUrl: env.DNA_LOCAL_BASE_URL?.trim() || "http://127.0.0.1:1919/v1",
-    localContextWindow: int(env.DNA_LOCAL_CONTEXT, 153600),
+    localContextWindow: int(env.DNA_LOCAL_CONTEXT, 139264),
     fallback: fallbackFrom(env),
     imageModel: env.DNA_IMAGE_MODEL ?? "gpt-image-2.5-flare",
     imageQuality: env.DNA_IMAGE_QUALITY ?? "low",
