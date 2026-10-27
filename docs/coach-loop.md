@@ -34,7 +34,9 @@ Keine Secrets, keine fremden Checkouts.
 
 ## Aufgaben
 
-- [ ] N1: `coach/outbox/` + Index-Format anlegen (Dedup-Regel testen).
+- [x] N1: `coach/outbox/` + Index-Format anlegen (Dedup-Regel testen) —
+  `src/news/coach.ts` (`renderDigest`, `digestFilename`, `isNewDigest`) +
+  `tests/coach.test.ts` (5/5 grün, `tsc -p .` sauber).
 - [ ] N2: Digest-Tick in `dna-server-cron` (hinter Schedule-Guard, trocken lauffähig).
 - [ ] N3: Digest→`taste.answer`-Referenzen verdrahten, Doku in `docs/` ablegen.
 - [ ] N4: Ersten Digest erzeugen, Nutzer-Feedback einholen, v2 entscheiden.
