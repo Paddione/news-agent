@@ -84,6 +84,30 @@ test("config: the fallback is off until DNA_FALLBACK_BASE_URL and DNA_FALLBACK_M
   assert.deepEqual(custom.fallback?.headers, { "x-opencode-session": "dna-cluster" });
 });
 
+test("config: the helper is off until DNA_HELPER_BASE_URL and DNA_HELPER_MODEL are set", async () => {
+  const { loadConfig } = await import("../src/config.ts");
+  const base = { DNA_PROVIDER: "local", DNA_ENV_FILE: "none" };
+  assert.equal(loadConfig([], base).helper, undefined);
+  assert.equal(
+    loadConfig([], { ...base, DNA_HELPER_MODEL: "gemma-4-e4b-it-qat" }).helper,
+    undefined,
+  );
+  const env = {
+    ...base,
+    DNA_HELPER_BASE_URL: " http://127.0.0.1:1920/v1 ",
+    DNA_HELPER_MODEL: "gemma-4-e4b-it-qat",
+  };
+  assert.deepEqual(loadConfig([], env).helper, {
+    baseUrl: "http://127.0.0.1:1920/v1",
+    model: "gemma-4-e4b-it-qat",
+    contextWindow: 32768,
+  });
+  assert.equal(
+    loadConfig([], { ...env, DNA_HELPER_CONTEXT: "65536" }).helper?.contextWindow,
+    65536,
+  );
+});
+
 test("AgentModelRoute reconfigures the main conversation only when the routed model changes", async () => {
   const { AgentModelRoute } = await import("../src/agents/model-route.ts");
   const configured: unknown[] = [];

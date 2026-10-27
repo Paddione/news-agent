@@ -35,6 +35,9 @@ export interface Config {
     /** DNA_FALLBACK_HEADERS: a JSON object of extra request headers. */
     headers?: Record<string, string>;
   };
+  /** DNA_HELPER_*: a second, small local model on its own llama-server, e.g. for the quick model. Off unless base URL
+   * and model are set; DNA_HELPER_CONTEXT is its window (default 32768). */
+  helper?: { baseUrl: string; model: string; contextWindow: number };
   jevBackend: "auto" | "fixture" | "mock" | "openrouter" | "typesafe" | "local";
   /** JEV_BACKEND=local: the judge's llama-server, its manifest, and the GPU session command. */
   jevLocalBaseUrl: string;
@@ -132,6 +135,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Con
     localBaseUrl: env.DNA_LOCAL_BASE_URL?.trim() || "http://127.0.0.1:1919/v1",
     localContextWindow: int(env.DNA_LOCAL_CONTEXT, 139264),
     fallback: fallbackFrom(env),
+    helper: helperFrom(env),
     imageModel: env.DNA_IMAGE_MODEL ?? "gpt-image-2.5-flare",
     imageQuality: env.DNA_IMAGE_QUALITY ?? "low",
     openaiKey: env.OPENAI_API_KEY?.trim() || undefined,
@@ -198,6 +202,13 @@ export function nextRun(schedule: string, now = new Date()): Date | undefined {
     return next;
   }
   return undefined;
+}
+
+function helperFrom(env: NodeJS.ProcessEnv): Config["helper"] {
+  const baseUrl = env.DNA_HELPER_BASE_URL?.trim();
+  const model = env.DNA_HELPER_MODEL?.trim();
+  if (!baseUrl || !model) return undefined;
+  return { baseUrl, model, contextWindow: int(env.DNA_HELPER_CONTEXT, 32768) };
 }
 
 function fallbackFrom(env: NodeJS.ProcessEnv): Config["fallback"] {

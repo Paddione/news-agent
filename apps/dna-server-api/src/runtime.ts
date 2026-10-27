@@ -124,6 +124,7 @@ export async function openApp(
               api: config.fallback.api,
               headers: config.fallback.headers,
             },
+            helper: config.helper,
           }
         : undefined,
   });
