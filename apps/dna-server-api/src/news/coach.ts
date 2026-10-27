@@ -1,6 +1,9 @@
-// Coach digest: pure weekly summary over taste data (keywords, feedback,
-// open questions). No store/DB/file access here: callers pass plain data and
-// write the returned markdown to coach/outbox/. Tested without a server boot.
+// Coach digest: weekly summary over taste data (keywords, feedback, open
+// questions). renderDigest is pure; assembleDigest reads a DigestStore and
+// writes the outbox file once per week. Tested without a server boot.
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 export interface DigestKeyword {
   term: string;
   kind: string;
@@ -37,6 +40,58 @@ export function digestFilename(date = new Date()): string {
 /** True when filename is not in the outbox index (dedup: never present twice). */
 export function isNewDigest(index: string[], filename: string): boolean {
   return !index.includes(filename);
+}
+
+export interface DigestStore {
+  keywords(): DigestKeyword[];
+  recentFeedback(limit: number): DigestFeedback[];
+  openQuestions(): DigestQuestion[];
+}
+
+export interface AssembleResult {
+  status: "completed" | "not_due";
+  filename: string;
+  bytes: number;
+  topics: number;
+  feedback: number;
+  questions: number;
+}
+
+/**
+ * Render the weekly digest from the store and write it to the outbox once.
+ * Returns not_due when this week's file already exists (no rewrite).
+ */
+export function assembleDigest(
+  store: DigestStore,
+  outboxDir: string,
+  date = new Date(),
+): AssembleResult {
+  const filename = digestFilename(date);
+  let existing: string[] = [];
+  try {
+    existing = readdirSync(outboxDir);
+  } catch {
+    existing = [];
+  }
+  if (!isNewDigest(existing, filename)) {
+    return { status: "not_due", filename, bytes: 0, topics: 0, feedback: 0, questions: 0 };
+  }
+  const keywords = store.keywords();
+  const feedback = store.recentFeedback(20);
+  const questions = store.openQuestions();
+  const topics = keywords.filter((k) => k.kind === "topic").length;
+  const body = renderDigest({ keywords, feedback, questions }, date);
+  const bytes = Buffer.byteLength(body, "utf8");
+  mkdirSync(outboxDir, { recursive: true });
+  writeFileSync(join(outboxDir, filename), body);
+  return {
+    status: "completed",
+    filename,
+    bytes,
+    topics,
+    feedback: feedback.length,
+    questions: questions.length,
+  };
 }
 
 export function renderDigest(input: DigestInput, date = new Date()): string {

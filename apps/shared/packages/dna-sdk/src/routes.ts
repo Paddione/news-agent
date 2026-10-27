@@ -31,6 +31,12 @@ export const ROUTES = {
     scope: "workflow",
     summary: "Start a news sweep (cron calls this)",
   },
+  "workflow.newsDigest": {
+    method: "POST",
+    path: "/v1/workflows/news-digest",
+    scope: "workflow",
+    summary: "Render the weekly coach digest (cron calls this; not_due off-week)",
+  },
   "schedule.get": {
     method: "GET",
     path: "/v1/schedule",

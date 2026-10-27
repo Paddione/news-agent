@@ -9,6 +9,7 @@ import { join, resolve } from "node:path";
 import { createLogger, installProcessHandlers, loadRootEnv, repoRoot } from "@dna/sdk/node";
 import { cronLine, install, managedLine, readCrontab, uninstall } from "./crontab.ts";
 import { DEFAULT_SCHEDULE, slotMinutes } from "./schedule.ts";
+import { digestTick } from "./digest.ts";
 import { tick } from "./tick.ts";
 
 if (process.env.DNA_ENV_FILE !== "none") loadRootEnv(process.env.DNA_ENV_FILE || undefined);
@@ -71,6 +72,21 @@ if (command === "tick") {
       ? `${r.requestId}: ${r.result?.status}${r.result?.sweep ? ` sweep ${r.result.sweep.id}` : ""}${r.result?.reason ? ` (${r.result.reason})` : ""}`
       : `${r.requestId}: failed after ${r.attempts} attempts: ${r.error}`,
   );
+  // Weekly coach digest, best effort: never changes the tick exit code.
+  const d = await digestTick({ apiUrl, token, device, log, backoffMs });
+  log[d.ok ? "info" : "warn"]("cron.digestTick", {
+    slot: d.requestId,
+    ok: d.ok,
+    attempts: d.attempts,
+    status: d.status,
+    outcome: d.result?.status,
+    filename: d.result?.digest?.filename,
+    reason: d.result?.reason,
+    error: d.error,
+  });
+  if (!d.ok) console.warn(`${d.requestId}: digest failed after ${d.attempts} attempts: ${d.error}`);
+  else if (d.result?.status === "completed")
+    console.log(`${d.requestId}: digest ${d.result.digest!.filename}`);
   process.exit(r.ok ? 0 : 1);
 } else if (command === "install") {
   const r = install(cronLine(process.env.DNA_CRON_SCHEDULE ?? DEFAULT_SCHEDULE, script));
