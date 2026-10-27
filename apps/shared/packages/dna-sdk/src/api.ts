@@ -571,6 +571,19 @@ export interface WorkflowResult {
   submissionId?: number;
 }
 
+/** Result of the weekly coach digest: rendered once per week, skipped otherwise. */
+export interface DigestResult {
+  status: "completed" | "not_due";
+  digest?: {
+    filename: string;
+    bytes: number;
+    topics: number;
+    feedback: number;
+    questions: number;
+  };
+  reason?: string;
+}
+
 /** How often scheduled sweeps run: every N minutes, or null when off. */
 export interface ScheduleState {
   everyMinutes: number | null;

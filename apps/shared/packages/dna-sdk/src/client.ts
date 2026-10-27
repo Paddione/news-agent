@@ -35,6 +35,7 @@ import type {
   ToolCallRow,
   UsageDay,
   WorkflowResult,
+  DigestResult,
 } from "./api.ts";
 import { DnaError, type ErrorCode } from "./errors.ts";
 import { ROUTES, routePath, type RouteId } from "./routes.ts";
@@ -263,6 +264,15 @@ export class DnaClient {
     cards?: number;
   }) {
     return this.raw<WorkflowResult>("workflow.newsSweep", { body, idempotencyKey: body.requestId });
+  }
+
+  /** Weekly digest; the server renders at most one file per week (not_due otherwise). */
+  newsDigest(body: {
+    requestId?: string;
+    trigger?: "cron" | "manual" | "test";
+    scheduled?: boolean;
+  }) {
+    return this.raw<DigestResult>("workflow.newsDigest", { body, idempotencyKey: body.requestId });
   }
 
   // ------------------------------------------------------------ chat

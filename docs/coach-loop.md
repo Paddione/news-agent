@@ -37,6 +37,11 @@ Keine Secrets, keine fremden Checkouts.
 - [x] N1: `coach/outbox/` + Index-Format anlegen (Dedup-Regel testen) —
   `src/news/coach.ts` (`renderDigest`, `digestFilename`, `isNewDigest`) +
   `tests/coach.test.ts` (5/5 grün, `tsc -p .` sauber).
-- [ ] N2: Digest-Tick in `dna-server-cron` (hinter Schedule-Guard, trocken lauffähig).
-- [ ] N3: Digest→`taste.answer`-Referenzen verdrahten, Doku in `docs/` ablegen.
+- [x] N2: Digest-Tick in `dna-server-cron` (hinter Schedule-Guard, trocken lauffähig) —
+  `digestTick`/`digestSlotId` in `src/digest.ts`, Aufruf in `main.ts` (best effort,
+  ändert Tick-Exit-Code nie), `tests/digest.test.ts` (3/3 grün mit Stub-Server).
+- [x] N3: Digest→`taste.answer`-Referenzen verdrahten — `POST /v1/workflows/news-digest`
+  (`workflow.newsDigest`, cron-Token-Scope, Wochen-Due), `assembleDigest` schreibt
+  in `DNA_COACH_OUTBOX_DIR` bzw. `<dataDir>/coach/outbox`; `tests/coach-route.test.ts`
+  (completed → not_due → manual, 2/2 grün gegen Boot-Server).
 - [ ] N4: Ersten Digest erzeugen, Nutzer-Feedback einholen, v2 entscheiden.
