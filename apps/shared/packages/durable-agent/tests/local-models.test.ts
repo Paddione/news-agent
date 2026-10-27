@@ -60,3 +60,27 @@ test("a fallback can speak the Responses API and send its own headers", () => {
   assert.equal(model?.api, "openai-responses");
   assert.deepEqual(model?.headers, headers);
 });
+
+const helper = {
+  baseUrl: "http://127.0.0.1:1920/v1",
+  model: "gemma-4-e4b-it-qat",
+  contextWindow: 32768,
+};
+
+test("a local catalog with a helper serves it free from its own provider and endpoint", () => {
+  const catalog = createModelCatalog({ provider: "local", local: { ...local, fallback, helper } });
+  assert.deepEqual(catalog.defaultModel, { provider: "local", modelId: local.model });
+  assert.deepEqual(
+    catalog.list().map((m) => [m.id, m.provider]),
+    [
+      [local.model, "local"],
+      [fallback.model, "fallback"],
+      [helper.model, "helper"],
+    ],
+  );
+  assert.deepEqual(catalog.ref(helper.model), { provider: "helper", modelId: helper.model });
+  assert.deepEqual(catalog.info(helper.model)?.cost, { input: 0, output: 0 });
+  const model = catalog.models.getModel("helper", helper.model);
+  assert.equal(model?.baseUrl, helper.baseUrl);
+  assert.equal(model?.contextWindow, 32768);
+});

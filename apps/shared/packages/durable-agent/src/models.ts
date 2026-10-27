@@ -1,6 +1,7 @@
 // The model catalog: Haiku 5.5 (default) plus 29 more models, all through OpenRouter.
 // DNA_PROVIDER=faux swaps in a free deterministic model with the same 1M window.
-// DNA_PROVIDER=local serves one open-weight model from an OpenAI-compatible endpoint (llama-server).
+// DNA_PROVIDER=local serves one open-weight model from an OpenAI-compatible endpoint (llama-server), plus an optional
+// small helper model on a second llama-server.
 import { envApiKeyAuth } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
 import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
@@ -85,6 +86,14 @@ export interface LocalOptions {
   contextWindow: number;
   /** A hosted OpenAI-compatible model the app switches to while the local server is down. */
   fallback?: FallbackOptions;
+  /** A second, small local model on its own llama-server, e.g. for the quick model's one-shot jobs. */
+  helper?: HelperOptions;
+}
+
+export interface HelperOptions {
+  baseUrl: string;
+  model: string;
+  contextWindow: number;
 }
 
 export interface FallbackOptions {
@@ -182,31 +191,9 @@ export function createModelCatalog(options: {
 function localCatalog(models: MutableModels, local: LocalOptions | undefined): ModelCatalog {
   if (!local)
     throw new Error("A local catalog needs local options (baseUrl, model, contextWindow)");
-  const free = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
-  models.setProvider(
-    createProvider({
-      id: "local",
-      name: "Local llama.cpp",
-      baseUrl: local.baseUrl,
-      // llama-server ignores the key; DNA_LOCAL_API_KEY=local satisfies pi-ai's auth resolution.
-      auth: { apiKey: envApiKeyAuth("Local endpoint key", ["DNA_LOCAL_API_KEY"]) },
-      models: [
-        {
-          id: local.model,
-          name: local.model,
-          api: "openai-completions",
-          provider: "local",
-          baseUrl: local.baseUrl,
-          input: ["text"],
-          cost: free,
-          reasoning: false,
-          contextWindow: local.contextWindow,
-          maxTokens: 8192,
-        },
-      ],
-      api: openAICompletionsApi(),
-    }),
-  );
+  models.setProvider(llamaProvider("local", "Local llama.cpp", local));
+  const helper = local.helper;
+  if (helper) models.setProvider(llamaProvider("helper", "Local helper llama.cpp", helper));
   const fallback = local.fallback;
   if (fallback)
     models.setProvider(
@@ -253,10 +240,21 @@ function localCatalog(models: MutableModels, local: LocalOptions | undefined): M
     reasoning: false,
     cost: fallback.cost,
   };
-  const all = fallbackInfo ? [info, fallbackInfo] : [info];
+  const helperInfo: ModelInfo | undefined = helper && {
+    id: helper.model,
+    name: helper.model,
+    tier: "L",
+    icon: "lab.png",
+    provider: "helper",
+    contextWindow: helper.contextWindow,
+    reasoning: false,
+    cost: { input: 0, output: 0 },
+  };
+  const all = [info, fallbackInfo, helperInfo].filter((m): m is ModelInfo => m !== undefined);
   const ref = (id: string): ModelRef => {
     if (id === local.model) return { provider: "local", modelId: id };
     if (fallback && id === fallback.model) return { provider: "fallback", modelId: id };
+    if (helper && id === helper.model) return { provider: "helper", modelId: id };
     throw new Error(
       `Unknown model ${id}. The local catalog serves ${all.map((m) => m.id).join(", ")}.`,
     );
@@ -269,4 +267,29 @@ function localCatalog(models: MutableModels, local: LocalOptions | undefined): M
     ref,
     info: (id) => all.find((m) => m.id === id),
   };
+}
+
+/** One free text model on a llama-server; it ignores the key, DNA_LOCAL_API_KEY=local satisfies pi-ai's auth. */
+function llamaProvider(id: string, name: string, endpoint: HelperOptions) {
+  return createProvider({
+    id,
+    name,
+    baseUrl: endpoint.baseUrl,
+    auth: { apiKey: envApiKeyAuth("Local endpoint key", ["DNA_LOCAL_API_KEY"]) },
+    models: [
+      {
+        id: endpoint.model,
+        name: endpoint.model,
+        api: "openai-completions",
+        provider: id,
+        baseUrl: endpoint.baseUrl,
+        input: ["text"],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        reasoning: false,
+        contextWindow: endpoint.contextWindow,
+        maxTokens: 8192,
+      },
+    ],
+    api: openAICompletionsApi(),
+  });
 }
