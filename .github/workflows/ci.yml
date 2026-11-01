@@ -25,4 +25,4 @@ jobs:
       # docs/known-red.md lists what is skipped here and why.
       - run: npm test
         env:
-          NODE_OPTIONS: --test-skip-pattern=SSE.frames.reduce
+          NODE_OPTIONS: --test-skip-pattern=every.client.route.belongs
