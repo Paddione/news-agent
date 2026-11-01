@@ -22,7 +22,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run check
       - run: npm run lint
-      # docs/known-red.md lists what is skipped here and why.
+      # Tests marked todo run without failing the job, see docs/known-red.md.
       - run: npm test
-        env:
-          NODE_OPTIONS: --test-skip-pattern=every.client.route.belongs --test-skip-pattern=SSE.frames.reduce --test-skip-pattern=a.subagent.transcript

@@ -17,7 +17,7 @@ const vueFiles = (dir: string): string[] =>
         : [],
   );
 
-test("every client route belongs to a capability", () => {
+test("every client route belongs to a capability", { todo: "docs/known-red.md" }, () => {
   const covered = new Set<RouteId>(Object.values(CAPABILITIES).flatMap((c) => c.routes));
   for (const id of Object.keys(ROUTES) as RouteId[])
     if (!INFRA_ROUTES.includes(id)) assert.ok(covered.has(id), `${id} has no capability`);
