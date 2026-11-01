@@ -1,0 +1,127 @@
+name: Auto Merge
+
+on:
+  workflow_run:
+    workflows:
+      - "CI"
+    types:
+      - completed
+
+permissions:
+  contents: write
+  pull-requests: write
+  # `gh pr checks` reads check runs and statuses; with an explicit permissions block the
+  # unlisted scopes are "none", so it saw no checks and the job always timed out.
+  checks: read
+  statuses: read
+  actions: read
+
+concurrency:
+  group: automerge-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  automerge:
+    name: Squash merge on green
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Evaluate checks and squash merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          echo "Evaluierung gestartet fuer Branch: $HEAD_BRANCH (SHA: $HEAD_SHA)"
+
+          # 1. Ermittle den offenen PR fuer diesen Head-Branch
+          PR_NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Kein offener Pull Request fuer Branch '$HEAD_BRANCH' gefunden. Beende Job."
+            exit 0
+          fi
+
+          echo "Zugehoeriger PR gefunden: #$PR_NUMBER"
+
+          # 2. Pruefe, ob der PR ein Entwurf (Draft) ist
+          IS_DRAFT=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json isDraft --jq '.isDraft')
+          if [ "$IS_DRAFT" = "true" ]; then
+            echo "PR #$PR_NUMBER ist als Draft markiert — Auto-Merge wird uebersprungen."
+            exit 0
+          fi
+
+          # 2a. Nur PRs mit dem Label "automerge". Das Label setzt nur, wer Schreib- oder Triage-Rechte hat.
+          #     Das Label muss gesetzt sein, wenn die CI endet; sonst die CI neu starten
+          #     (gh run rerun) oder `gh pr create --label automerge` verwenden.
+          HAS_LABEL=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels --jq '[.labels[].name] | index("automerge") != null')
+          if [ "$HAS_LABEL" != "true" ]; then
+            echo "PR #$PR_NUMBER hat kein Label 'automerge' — Auto-Merge wird uebersprungen."
+            exit 0
+          fi
+
+          # 2b. Nur PRs aus diesem Repository und nur der Commit, den die CI getestet hat.
+          #     Verhindert Merges von Fork-PRs und von Commits, die nach dem CI-Start gepusht wurden.
+          IS_CROSS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json isCrossRepository --jq '.isCrossRepository')
+          if [ "$IS_CROSS" = "true" ]; then
+            echo "PR #$PR_NUMBER kommt aus einem Fork — Auto-Merge wird uebersprungen."
+            exit 0
+          fi
+          PR_HEAD=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefOid --jq '.headRefOid')
+          if [ "$PR_HEAD" != "$HEAD_SHA" ]; then
+            echo "PR-Head $PR_HEAD ist nicht der getestete Commit $HEAD_SHA — Auto-Merge wird uebersprungen."
+            exit 0
+          fi
+
+          # 3. Warte auf Abschluss aller parallelen Checks (max. 5 Minuten)
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Pruefe CI-Status fuer PR #$PR_NUMBER (Versuch $ATTEMPT/$MAX_ATTEMPTS)..."
+
+            # gh pr checks liefert Exit-Code 0 nur, wenn ALLE Checks erfolgreich bestanden sind
+            if gh pr checks "$PR_NUMBER" --repo "$REPO" >/dev/null 2>&1; then
+              echo "Alle CI-Checks auf PR #$PR_NUMBER sind erfolgreich gruen!"
+
+              # Squash-Merge durchfuehren (mit Fallback auf REST API).
+              # Der Head-Branch wird danach geloescht (Repo-Setting
+              # delete_branch_on_merge + explizite Flags hier als Guertel und Hosentraeger).
+              if gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch --match-head-commit "$HEAD_SHA"; then
+                echo "PR #$PR_NUMBER via 'gh pr merge' erfolgreich gemergt!"
+              else
+                echo "'gh pr merge' schlug fehl, versuche REST API Fallback..."
+                gh api -X PUT "repos/$REPO/pulls/$PR_NUMBER/merge" -f merge_method=squash -f sha="$HEAD_SHA"
+                gh api -X DELETE "repos/$REPO/git/refs/heads/$HEAD_BRANCH" 2>/dev/null || true
+                echo "PR #$PR_NUMBER via REST API erfolgreich gemergt!"
+              fi
+              exit 0
+            fi
+
+            # Pruefe auf Fehler
+            CHECKS_OUTPUT=$(gh pr checks "$PR_NUMBER" --repo "$REPO" 2>&1 || true)
+            if echo "$CHECKS_OUTPUT" | grep -qE "(failing|cancelled)"; then
+              echo "Mindestens ein Check ist fehlgeschlagen oder abgebrochen:"
+              echo "$CHECKS_OUTPUT"
+              echo "Auto-Merge abgebrochen."
+              exit 0
+            fi
+
+            if [ "$ATTEMPT" -eq 1 ]; then
+              echo "gh pr checks meldet:"
+              echo "$CHECKS_OUTPUT"
+            fi
+            echo "Parallele Checks laufen noch. Warte 10s..."
+            sleep 10
+          done
+
+          echo "Timeout: Nicht alle Checks wurden innerhalb des Zeitfensters gruen."
+          echo "Letzte Ausgabe von gh pr checks:"
+          echo "$CHECKS_OUTPUT"
+          exit 1
