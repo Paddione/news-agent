@@ -11,7 +11,7 @@ after(() => s.cleanup());
 
 const comparable = (items: unknown[]) => JSON.parse(JSON.stringify(items));
 
-test("SSE frames reduce to the same transcript as /v1/agent/transcript, and feed.card arrives for each card", { todo: "docs/known-red.md" }, async () => {
+test("SSE frames reduce to the same transcript as /v1/agent/transcript, and feed.card arrives for each card", async () => {
   const frames: Frame[] = [];
   const agent = new AgentModel();
   const feed = new FeedModel();
@@ -71,7 +71,8 @@ test("SSE frames reduce to the same transcript as /v1/agent/transcript, and feed
       (b) => b.type === "tool" && b.call.name === "present_news" && b.call.status === "done",
     ).length >= 4,
   );
-  assert.equal(feed.state.agent?.busy, false);
+  // agent.state frames are coalesced over 500 ms, so the idle one trails the transcript.
+  await until(() => feed.state.agent?.busy === false, "the idle agent.state frame");
 
   stop.abort();
   await reading;
