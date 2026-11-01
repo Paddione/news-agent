@@ -5,8 +5,7 @@ Gate vor jedem Merge ist `.github/workflows/ci.yml` auf Node 24: `npm run check`
 ist neu. Ein roter Test bekommt `{ todo: "docs/known-red.md" }`: Er läuft weiter und erscheint in der Ausgabe, lässt den
 Job aber nicht scheitern. Ein Eintrag fliegt samt Markierung raus, sobald der Check wieder grün ist.
 
-Lokal braucht die Suite Node 24 (`.node-version`). Unter Node 22 scheitern zusätzlich `apps/dna-cli` und
-`apps/dna-client-browser/tests/ui-faux.mjs`.
+Lokal braucht die Suite Node 24 (`.node-version`). `apps/dna-cli` scheitert unter Node 22.
 
 | Check | Seit | Stand | Warum akzeptiert |
 |---|---|---|---|
