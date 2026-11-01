@@ -23,12 +23,36 @@ const WEATHER_TOOL = {
 };
 
 const PROMPTS = [
-  { id: "simple-1", messages: [{ role: "user", content: "Reply with exactly: HELLO" }], tools: null },
-  { id: "simple-2", messages: [{ role: "user", content: "What is 7 * 8? Reply with just the number." }], tools: null },
-  { id: "tool-weather-berlin", messages: [{ role: "user", content: "What is the weather in Berlin?" }], tools: [WEATHER_TOOL] },
-  { id: "tool-weather-tokyo", messages: [{ role: "user", content: "Tell me the weather in Tokyo." }], tools: [WEATHER_TOOL] },
-  { id: "tool-noop", messages: [{ role: "user", content: "Say hi in one word." }], tools: [WEATHER_TOOL] },
-  { id: "multi", messages: [{ role: "user", content: "What's the weather in Paris and London?" }], tools: [WEATHER_TOOL] },
+  {
+    id: "simple-1",
+    messages: [{ role: "user", content: "Reply with exactly: HELLO" }],
+    tools: null,
+  },
+  {
+    id: "simple-2",
+    messages: [{ role: "user", content: "What is 7 * 8? Reply with just the number." }],
+    tools: null,
+  },
+  {
+    id: "tool-weather-berlin",
+    messages: [{ role: "user", content: "What is the weather in Berlin?" }],
+    tools: [WEATHER_TOOL],
+  },
+  {
+    id: "tool-weather-tokyo",
+    messages: [{ role: "user", content: "Tell me the weather in Tokyo." }],
+    tools: [WEATHER_TOOL],
+  },
+  {
+    id: "tool-noop",
+    messages: [{ role: "user", content: "Say hi in one word." }],
+    tools: [WEATHER_TOOL],
+  },
+  {
+    id: "multi",
+    messages: [{ role: "user", content: "What's the weather in Paris and London?" }],
+    tools: [WEATHER_TOOL],
+  },
 ];
 
 async function chat(prompt) {
@@ -74,8 +98,7 @@ async function main() {
   for (const p of PROMPTS) {
     try {
       const { latency, toolName, content } = await chat(p);
-      const expectsTool =
-        (p.id.startsWith("tool-") && p.id !== "tool-noop") || p.id === "multi";
+      const expectsTool = (p.id.startsWith("tool-") && p.id !== "tool-noop") || p.id === "multi";
       const gotTool = toolName !== null;
       const ok = expectsTool ? gotTool : !gotTool || content.trim().length > 0;
       if (ok) okCount++;

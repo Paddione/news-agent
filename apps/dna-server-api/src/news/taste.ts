@@ -51,7 +51,8 @@ export function applyFeedback(
       : undefined;
     // jev picks the closest topic even for off-topic items, so a down-vote only lowers a matched topic the text
     // names: "not for me" on an essay must not cost the topic the essay was squeezed into.
-    const trusted = matched && (input.signal === "more" || names(text, matched.term)) ? matched : undefined;
+    const trusted =
+      matched && (input.signal === "more" || names(text, matched.term)) ? matched : undefined;
     const hits = trusted ? [trusted] : topics.filter((k) => mentions(text, k.term));
     for (const k of hits) nudge(k, input.signal === "more" ? MORE : LESS);
     // The card's source learns too: sweeps rank by source weight as well as topic weight.
