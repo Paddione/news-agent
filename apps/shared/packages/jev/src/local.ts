@@ -118,9 +118,10 @@ export class LocalJev {
       throw new ContractError(
         `Judge put ${mass.toFixed(3)} on the labels, below min_mass ${this.opts.manifest.min_mass}.`,
       );
-    const t = opts.questionId !== undefined
-      ? (this.opts.manifest.temperatures?.[opts.questionId] ?? this.opts.manifest.temperature)
-      : this.opts.manifest.temperature;
+    const t =
+      opts.questionId !== undefined
+        ? (this.opts.manifest.temperatures?.[opts.questionId] ?? this.opts.manifest.temperature)
+        : this.opts.manifest.temperature;
     const scaled = raw.map((p) => (p > 0 ? Math.pow(p / mass, 1 / t) : 0));
     const z = scaled.reduce((a, b) => a + b, 0);
     return { probs: scaled.map((p) => p / z), mass };

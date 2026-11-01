@@ -22,5 +22,6 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run check
       - run: npm run lint
+      - run: npm run fmt:check
       # Tests marked todo run without failing the job, see docs/known-red.md.
       - run: npm test

@@ -14,8 +14,10 @@ const { values } = parseArgs({
   },
 });
 
-const corpusPath = values.corpus ?? "/home/patrick/unsloth-boxes/news-judge-train/corpus/injection/v3.jsonl";
-const outPath = values.output ?? "/home/patrick/unsloth-boxes/news-judge-train/corpus/injection/v3-labeled.jsonl";
+const corpusPath =
+  values.corpus ?? "/home/patrick/unsloth-boxes/news-judge-train/corpus/injection/v3.jsonl";
+const outPath =
+  values.output ?? "/home/patrick/unsloth-boxes/news-judge-train/corpus/injection/v3-labeled.jsonl";
 const baseUrl = values["base-url"] ?? "http://127.0.0.1:8010";
 const model = values.model ?? "qwen3.8-27b-gsq-rco-iq2s";
 
@@ -35,17 +37,34 @@ const teacher = new LocalJev({
 });
 await teacher.init();
 
-const rows = readFileSync(corpusPath, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-const done = new Set(existsSync(outPath) ? readFileSync(outPath, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l).key) : []);
+const rows = readFileSync(corpusPath, "utf8")
+  .split("\n")
+  .filter(Boolean)
+  .map((l) => JSON.parse(l));
+const done = new Set(
+  existsSync(outPath)
+    ? readFileSync(outPath, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => JSON.parse(l).key)
+    : [],
+);
 
 let n = 0;
 for (const row of rows) {
-  const rendered = renderCommand(command, { title: row.title, source: row.source, excerpt: row.text });
+  const rendered = renderCommand(command, {
+    title: row.title,
+    source: row.source,
+    excerpt: row.text,
+  });
   const q = rendered.questions.injection;
   const prompt = renderPrompt(rendered.state, q);
   const labels = ["yes", "no"];
   const key = row.id; // use id as key
-  if (done.has(key)) { console.log(`skip ${key}`); continue; }
+  if (done.has(key)) {
+    console.log(`skip ${key}`);
+    continue;
+  }
   let answer;
   try {
     answer = await teacher.distribution(prompt, labels);

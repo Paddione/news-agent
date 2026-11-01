@@ -27,7 +27,10 @@ export function repoComponentCatalog(): string {
       lines.push(`- ${repo}: catalog unavailable (${p.error})`);
       continue;
     }
-    const pkgs = (p.packages ?? []).slice(0, 6).map((x) => x.name).join(", ");
+    const pkgs = (p.packages ?? [])
+      .slice(0, 6)
+      .map((x) => x.name)
+      .join(", ");
     lines.push(`- ${repo}: packages ${pkgs}`);
     for (const c of (p.clusters ?? []).slice(0, 4))
       lines.push(
