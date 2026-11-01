@@ -89,5 +89,10 @@ export const CAPABILITIES = {
 export type CapabilityId = keyof typeof CAPABILITIES;
 export const CAPABILITY_IDS = Object.keys(CAPABILITIES) as CapabilityId[];
 
-/** Routes no capability needs: liveness, the cron-only workflow, and image bytes behind <img>. */
-export const INFRA_ROUTES: readonly RouteId[] = ["healthz", "workflow.newsSweep", "images.get"];
+/** Routes no capability needs: liveness, the cron-only workflows, and image bytes behind <img>. */
+export const INFRA_ROUTES: readonly RouteId[] = [
+  "healthz",
+  "workflow.newsSweep",
+  "workflow.newsDigest",
+  "images.get",
+];
