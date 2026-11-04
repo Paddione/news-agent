@@ -12,3 +12,5 @@ test-results/
 .codebase-memory/
 # dev-flow-plan: phase-events bleiben im Plan-Stand nachvollziehbar
 !.agents/plans/*/phase-events.log
+# Unsloth compile cache (regenerierbar, 2026-11-04)
+unsloth_compiled_cache/
