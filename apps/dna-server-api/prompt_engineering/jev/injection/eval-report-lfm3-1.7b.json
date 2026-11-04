@@ -234,10 +234,7 @@
     "rows": 60,
     "judged": 0,
     "failures": 60,
-    "mass_range": [
-      0.003,
-      0.578
-    ],
+    "mass_range": [0.003, 0.578],
     "timeouts": 0
   },
   "mass_detail_v1": {
