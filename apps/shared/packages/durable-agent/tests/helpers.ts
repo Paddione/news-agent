@@ -58,6 +58,7 @@ export function memoryTelemetry() {
   return { rows, store };
 }
 
+// Shared poll helper: dna-server-api/tests/helpers.ts re-exports this, so the two suites cannot drift.
 export const until = async (
   check: () => boolean | Promise<boolean>,
   ms = 10_000,

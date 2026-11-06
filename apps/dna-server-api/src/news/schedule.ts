@@ -3,6 +3,8 @@
 // is off. Changing the interval is one settings write, never a crontab edit.
 import type { ScheduleState } from "@dna/sdk";
 import type { Store } from "../db/store.ts";
+// Single source: the tick parse lives in dna-server-cron and is shared here under the route's contract name.
+import { tickMinutes } from "../../../dna-server-cron/src/schedule.ts";
 
 export const SCHEDULE_PRESETS = [1, 5, 10, 15, 30, 60] as const;
 /** Scheduled sweeps run this often until the reader picks another preset. */
@@ -17,13 +19,7 @@ interface ScheduleSetting {
 }
 const MINUTE = 60_000;
 
-/** The crontab's tick in minutes: 1 for every minute, N for a step of N minutes, else an hour. */
-export function tickMinutes(cronSchedule: string): number {
-  const minute = cronSchedule.trim().split(/\s+/)[0];
-  if (minute === "*") return 1;
-  const step = minute.match(/^\*\/(\d+)$/)?.[1];
-  return step ? Number(step) : 60;
-}
+export { tickMinutes };
 
 export class Schedule {
   constructor(private readonly deps: { store: Store; cronSchedule: string }) {}

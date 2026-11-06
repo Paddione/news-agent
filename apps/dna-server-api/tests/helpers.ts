@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { loadConfig, type Config } from "../src/config.ts";
 import { openStore, type Store } from "../src/db/store.ts";
 import { openApp, type App } from "../src/runtime.ts";
+// Shared poll helper: single source in @dna/durable-agent's tests, re-exported here so both suites poll alike.
+import { until } from "../../shared/packages/durable-agent/tests/helpers.ts";
+
+export { until };
 
 export const ROOT = join(import.meta.dirname, "../../..");
 export const CONFIG_DIR = join(import.meta.dirname, "../config");
@@ -23,19 +27,6 @@ export function tempStore(): { store: Store; dir: string; cleanup: () => void } 
     },
   };
 }
-
-export const until = async (
-  check: () => boolean | Promise<boolean>,
-  ms = 10_000,
-  label = "condition",
-) => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (await check()) return;
-    await new Promise((r) => setTimeout(r, 25));
-  }
-  throw new Error(`Timed out waiting for ${label}`);
-};
 
 /** A faux app on fixture feeds and fixture jev, in a temp dir. */
 export async function fauxApp(
