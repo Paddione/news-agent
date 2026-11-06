@@ -1,6 +1,6 @@
 # Progress: OD-3/OD-4 news-agent
 
-Prozent: 90 % (Kette gebrochen, Guard drin; 2 Deferred-Items offen)
+Prozent: 100 % (Deploy-Kette + SSE + DB + Deferred-Dups; gemergt + gepusht)
 
 ## Erledigt
 - Deploy-Kette: `probeStep` reines Leaf (`→probe`), Tunnel beim Caller,
@@ -18,5 +18,7 @@ Prozent: 90 % (Kette gebrochen, Guard drin; 2 Deferred-Items offen)
   als intentional dokumentiert (statt 100 %).
 
 ## Nächste Schritte
-- Deferred (STOP-Entscheid, eigene Pakete): `tickMinutes↔slotMinutes`-
-  Vereinigung, `until`-Helper-Dup → dann 100 %.
+- Keine — R1 geschlossen: `tickMinutes↔slotMinutes` Single-Source-Alias
+  (Commit `f1ddcab`, Push main 82b9c98..f1ddcab), `until`-Helper vereint;
+  tsc ×3 + 6 Suiten grün, Verträge byte-identisch.
+  `sse.arm↔pump` bleibt dokumentierte Timer-Drossel (by design).
