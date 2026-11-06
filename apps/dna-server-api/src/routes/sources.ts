@@ -2,6 +2,7 @@
 import type { SourceKind } from "@dna/sdk";
 import { int, invalid, notFound } from "../errors.ts";
 import { bodyOf, bool, num, oneOf, str, type Handlers, type RouteDeps } from "./types.ts";
+import { removeRoute } from "./keywords.ts";
 
 const KINDS: readonly SourceKind[] = [
   "rss",
@@ -47,10 +48,6 @@ export function sourceRoutes({
       if (!source) throw notFound(`No source ${req.params.id}`);
       res.json(source);
     },
-    "sources.remove": (req, res) => {
-      if (!store.sources.remove(int(req.params.id, "id")))
-        throw notFound(`No source ${req.params.id}`);
-      res.json({ ok: true });
-    },
+    "sources.remove": removeRoute((id) => store.sources.remove(id), "source"),
   };
 }

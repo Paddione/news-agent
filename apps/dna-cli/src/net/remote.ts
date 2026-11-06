@@ -313,17 +313,30 @@ export async function tunnel(d: NetDevice): Promise<Step> {
   };
 }
 
+/**
+ * Leaf probe step: pure HTTP checks over `probe`, no tunnel/ssh work. Callers that need a
+ * tunnel ensure it first (up/deploy/step), so this leaf never calls back into the deploy
+ * chain and the module graph stays one-directional (deploy chain → probeStep → probe).
+ */
 export async function probeStep(
   d: NetDevice,
   tokens: { client?: string; cron?: string },
 ): Promise<Step> {
-  if (d.tunnel) await tunnel(d);
   const checks = await probe(d.url, tokens);
   return {
     step: "probe",
     ok: checks.every((c) => c.ok),
     detail: checks.map((c) => `${c.ok ? "pass" : "FAIL"} ${c.name} (${c.detail})`).join("; "),
   };
+}
+
+/** Tunnel-owning wrapper for the `probe` step verb: the tunnel lives here, never in the leaf. */
+export async function probeStepWithTunnel(
+  d: NetDevice,
+  tokens: { client?: string; cron?: string },
+): Promise<Step> {
+  if (d.tunnel) await tunnel(d);
+  return probeStep(d, tokens);
 }
 
 /**
@@ -473,6 +486,7 @@ export const remoteDriver = {
       if (d.ui) await go(() => uiReady(d));
       await go(() => cron(d, "install"));
       if (d.kind === "exe-dev") await go(() => expose(d));
+      if (d.tunnel) await go(() => tunnel(d));
       await go(() => probeStep(d, tokens));
     } catch (error) {
       if (!(error as { steps?: Step[] }).steps)
@@ -483,6 +497,7 @@ export const remoteDriver = {
   async deploy(d: NetDevice, tokens: { client?: string; cron?: string }): Promise<Step[]> {
     // Reinstalling the services restarts them, and adds any a newer version needs (the UI service).
     const steps = [await deploy(d), await writeEnv(d), await installService(d)];
+    if (d.tunnel) steps.push(await tunnel(d));
     steps.push(
       await waitHealthy(d),
       ...(d.ui ? [await uiReady(d)] : []),
@@ -539,7 +554,7 @@ export const remoteDriver = {
       case "ui":
         return uiReady(d);
       case "probe":
-        return probeStep(d, tokens);
+        return probeStepWithTunnel(d, tokens);
       case "tunnel":
         return tunnel(d);
       case "tcc":

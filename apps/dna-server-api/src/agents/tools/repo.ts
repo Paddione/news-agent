@@ -2,6 +2,15 @@ import { Type } from "@earendil-works/pi-ai";
 import { defineAppTool, toolError, toolText } from "@dna/durable-agent";
 import type { CodeGraph } from "../../news/graph.ts";
 
+/** Shared executor for the repo tools: same text-or-error shape in one place. */
+async function runRepoTool(run: () => Promise<string>) {
+  try {
+    return toolText(await run());
+  } catch (err: unknown) {
+    return toolError(err instanceof Error ? err.message : String(err));
+  }
+}
+
 export function repoSearch(graph: CodeGraph) {
   return defineAppTool({
     name: "repo_search",
@@ -12,14 +21,7 @@ export function repoSearch(graph: CodeGraph) {
       query: Type.String({ description: "Code search pattern or term." }),
     }),
     replay: "safe",
-    execute: async (args) => {
-      try {
-        const text = await graph.search(args.project, args.query);
-        return toolText(text);
-      } catch (err: any) {
-        return toolError(err.message ?? String(err));
-      }
-    },
+    execute: async (args) => runRepoTool(() => graph.search(args.project, args.query)),
   });
 }
 
@@ -33,14 +35,7 @@ export function repoSymbol(graph: CodeGraph) {
       name: Type.String({ description: "Symbol name or pattern." }),
     }),
     replay: "safe",
-    execute: async (args) => {
-      try {
-        const text = await graph.symbol(args.project, args.name);
-        return toolText(text);
-      } catch (err: any) {
-        return toolError(err.message ?? String(err));
-      }
-    },
+    execute: async (args) => runRepoTool(() => graph.symbol(args.project, args.name)),
   });
 }
 
@@ -53,14 +48,7 @@ export function repoOverview(graph: CodeGraph) {
       project: Type.String({ description: "Target project name from allowed repos." }),
     }),
     replay: "safe",
-    execute: async (args) => {
-      try {
-        const text = await graph.overview(args.project);
-        return toolText(text);
-      } catch (err: any) {
-        return toolError(err.message ?? String(err));
-      }
-    },
+    execute: async (args) => runRepoTool(() => graph.overview(args.project)),
   });
 }
 

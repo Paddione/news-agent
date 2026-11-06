@@ -91,7 +91,8 @@ async function openBrowser(d: NetDevice): Promise<Step> {
   return { step: "browser", ok: false, detail: `could not open a browser, visit ${ui.url}` };
 }
 
-async function statusOf(d: NetDevice, tokens: Tokens) {
+/** Device status: API checks plus the UI. Renamed off `statusOf` to not collide with probe.ts's fetch helper. */
+async function deviceStatusOf(d: NetDevice, tokens: Tokens) {
   const [status, ui] = await Promise.all([
     d.kind === "local" ? local.status(d, tokens) : remoteDriver.status(d, tokens),
     uiOf(d),
@@ -105,7 +106,7 @@ export async function net(verb: string, args: string[], tokens: Tokens): Promise
     const out = [];
     for (const d of Object.values(network.devices)) {
       try {
-        out.push(await statusOf(d, tokens));
+        out.push(await deviceStatusOf(d, tokens));
       } catch (error) {
         out.push({
           device: d.id,
@@ -132,7 +133,7 @@ export async function net(verb: string, args: string[], tokens: Tokens): Promise
   if (d.kind === "local") {
     switch (verb) {
       case "status":
-        return [await statusOf(d, tokens)];
+        return [await deviceStatusOf(d, tokens)];
       case "probe":
         return local.probe(d, tokens);
       case "up":
@@ -161,7 +162,7 @@ export async function net(verb: string, args: string[], tokens: Tokens): Promise
   }
   switch (verb) {
     case "status":
-      return [await statusOf(d, tokens)];
+      return [await deviceStatusOf(d, tokens)];
     case "probe":
       return remoteDriver.probe(d, tokens);
     case "up":

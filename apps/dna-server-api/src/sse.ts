@@ -78,15 +78,24 @@ export function openSse(res: Response): Sse {
   };
 }
 
-/** Run `fn` at most once per `ms`, never concurrently, always catching up on the latest trigger. */
+/**
+ * Run `fn` at most once per `ms`, never concurrently, always catching up on the latest trigger.
+ * Single trigger owner: only `schedule` arms the timer. `pump` never calls back into it; when
+ * work arrives mid-run it rearms the timer inline, so the call graph has one edge (schedule→pump)
+ * and no pump→schedule back-edge. Guard flags (`running`/`queued`) keep streams viewer-only:
+ * closing one never aborts work, it just stops rescheduling.
+ */
 export function coalesce(fn: () => Promise<void>, ms: number, onError: (e: unknown) => void) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let running = false;
-  let again = false;
-  const run = async () => {
+  let queued = false;
+  const arm = () => {
+    if (!timer) timer = setTimeout(() => void pump(), ms);
+  };
+  const pump = async () => {
     timer = undefined;
     if (running) {
-      again = true;
+      queued = true;
       return;
     }
     running = true;
@@ -96,16 +105,16 @@ export function coalesce(fn: () => Promise<void>, ms: number, onError: (e: unkno
       onError(e);
     } finally {
       running = false;
-      if (again) {
-        again = false;
-        trigger();
+      if (queued) {
+        queued = false;
+        arm();
       }
     }
   };
-  const trigger = () => {
-    if (!timer) timer = setTimeout(() => void run(), ms);
+  const schedule = () => {
+    arm();
   };
-  return Object.assign(trigger, { now: run, cancel: () => timer && clearTimeout(timer) });
+  return Object.assign(schedule, { now: pump, cancel: () => timer && clearTimeout(timer) });
 }
 
 export function parseConversations(raw: unknown): number[] {

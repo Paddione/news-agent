@@ -1,8 +1,16 @@
 // dna.sqlite: node:sqlite in WAL mode. One API process writes; SSE readers, the telemetry
 // projector and request handlers read while it commits.
+//
+// Split into two kernels in one file (single-file shim so every existing
+// `from "../db.ts"` import keeps working):
+//   A. conn kernel — openDb/tx/Db: the sqlite connection, nothing else.
+//   B. format kernel — nowIso/json/parse/bind/bool/num/str: pure value mapping, no Db use.
+// Format never touches conn, so the dependency direction is one-way by construction.
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+
+// ---- A. conn kernel -------------------------------------------------------
 
 export type Db = DatabaseSync;
 
@@ -34,6 +42,8 @@ export function tx<T>(db: Db, fn: () => T): T {
     throw error;
   }
 }
+
+// ---- B. format kernel (pure: no Db, no I/O) -----------------------------------
 
 export const nowIso = () => new Date().toISOString();
 export const json = (value: unknown) => JSON.stringify(value ?? null);

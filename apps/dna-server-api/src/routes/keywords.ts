@@ -1,4 +1,5 @@
 // Keywords per section (topic, hype, facts, signal) with weights.
+import type { Request, Response } from "express";
 import type { Keyword } from "@dna/sdk";
 import { int, invalid, notFound } from "../errors.ts";
 import { clamp } from "../db/repos/taste.ts";
@@ -6,6 +7,17 @@ import { tasteFrame } from "../news/taste.ts";
 import { bodyOf, bool, num, oneOf, str, type Handlers, type RouteDeps } from "./types.ts";
 
 const KINDS = ["topic", "hype", "facts", "signal"] as const;
+
+/**
+ * Shared remove handler for crud routes: same notFound + `{ ok: true }` shape, so
+ * keywords/sources stay one implementation. Route contracts unchanged.
+ */
+export function removeRoute(remove: (id: number) => boolean, label: string) {
+  return (req: Request, res: Response) => {
+    if (!remove(int(req.params.id, "id"))) throw notFound(`No ${label} ${req.params.id}`);
+    res.json({ ok: true });
+  };
+}
 
 export function keywordRoutes({
   app,
@@ -61,10 +73,6 @@ export function keywordRoutes({
       }
       res.json(keyword);
     },
-    "keywords.remove": (req, res) => {
-      if (!store.taste.removeKeyword(int(req.params.id, "id")))
-        throw notFound(`No keyword ${req.params.id}`);
-      res.json({ ok: true });
-    },
+    "keywords.remove": removeRoute((id) => store.taste.removeKeyword(id), "keyword"),
   };
 }
