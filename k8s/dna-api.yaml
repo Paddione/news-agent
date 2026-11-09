@@ -53,14 +53,14 @@ spec:
             - name: DNA_PROVIDER
               value: local
             - name: DNA_LOCAL_BASE_URL
-              value: http://100.76.165.106:1919/v1
+              value: http://100.76.165.106:8001/v1
             # llama-server ignores the key; pi-ai's auth resolution needs one.
             - name: DNA_LOCAL_API_KEY
               value: local
             - name: DNA_MODEL
-              value: qwen3.8-27b-gsq-rco-iq2s
+              value: QUASAR-QAT/Qwen3.5-4B-QUASAR-NVFP4-W4A4
             - name: DNA_RESEARCH_MODEL
-              value: qwen3.8-27b-gsq-rco-iq2s
+              value: QUASAR-QAT/Qwen3.5-4B-QUASAR-NVFP4-W4A4
             # Fallback: OpenCode Go (flat subscription); muse-spark-1.3-contributor only speaks the Responses API there.
             - name: DNA_FALLBACK_BASE_URL
               value: https://opencode.ai/zen/go/v1
