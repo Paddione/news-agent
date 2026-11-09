@@ -52,6 +52,11 @@ spec:
             # Agent model and judge both run on PK-Desktop, reached over the tailnet (news-judge-tailnet.service).
             - name: DNA_PROVIDER
               value: local
+            # AKTUELL (2026-11-09): vLLM-Fallback, da :1919-Backend (Qwen3.8-27B) down.
+            # BACKUP/RUECKWEG (27B läuft wieder): die drei values zurückdrehen auf
+            #   DNA_LOCAL_BASE_URL=http://100.76.165.106:1919/v1
+            #   DNA_MODEL=qwen3.8-27b-gsq-rco-iq2s
+            #   DNA_RESEARCH_MODEL=qwen3.8-27b-gsq-rco-iq2s
             - name: DNA_LOCAL_BASE_URL
               value: http://100.76.165.106:8001/v1
             # llama-server ignores the key; pi-ai's auth resolution needs one.
