@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createConnection } from "node:net";
 import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
+import { parseEnv } from "node:util";
 import { repoRoot, type NetDevice } from "@dna/sdk/node";
 import type { Step } from "./local.ts";
 import { probe } from "./probe.ts";
@@ -18,13 +19,15 @@ const NVM_INSTALL = "https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/instal
 const root = () => repoRoot();
 
 function localEnv(): Record<string, string> {
+  // Native parser (same engine process.loadEnvFile uses) instead of the
+  // hand-rolled line regex: no process.env side effects, so the
+  // DNA_ENV_FILE=none escape hatch keeps working. Deliberately NOT
+  // loadRootEnv(), which would publish every .env key into process.env.
   const file = join(root(), ".env");
+  if (!existsSync(file)) return {};
   const out: Record<string, string> = {};
-  if (!existsSync(file)) return out;
-  for (const line of readFileSync(file, "utf8").split("\n")) {
-    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
-    if (m) out[m[1]] = m[2].replace(/^(['"])(.*)\1$/, "$2");
-  }
+  for (const [k, v] of Object.entries(parseEnv(readFileSync(file, "utf8"))))
+    if (v !== undefined) out[k] = v;
   return out;
 }
 
