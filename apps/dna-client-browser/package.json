@@ -14,17 +14,17 @@
   "dependencies": {
     "@dna/durable-agent": "*",
     "@dna/sdk": "*",
-    "@lucide/vue": "1.55.0",
+    "@lucide/vue": "^1.55.0",
     "dompurify": "3.4.17",
     "express": "5.3.0",
-    "marked": "18.1.1",
+    "marked": "^18.1.1",
     "tsx": "4.23.15",
-    "vue": "3.5.43"
+    "vue": "^3.5.43"
   },
   "devDependencies": {
     "@types/express": "5.0.6",
     "@vitejs/plugin-vue": "6.0.10",
     "vite": "^8.3.2",
-    "vue-tsc": "3.3.13"
+    "vue-tsc": "^3.3.13"
   }
 }
