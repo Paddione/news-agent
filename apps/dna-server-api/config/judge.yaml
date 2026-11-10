@@ -1,0 +1,11 @@
+# Judge wiring: which manifest the local judge must load, and the policy it judges with.
+# SSOT for the judge attachment (Env -> file -> version). The unsloth manifest
+# itself stays where it is; this file only references it, never copies it.
+# Checked by tests/judge-ssot.test.ts: the path default must match config.ts,
+# scripts/judge-injection-eval.ts and .env.example; the policy must match
+# prompt_engineering/jev/injection/command.json.
+manifest_path: /mnt/f/models/news-judge/current/manifest.json
+manifest_name: news-judge
+policy:
+  reject_min: 0.7
+  allow_max: 0.3
