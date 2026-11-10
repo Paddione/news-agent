@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news-agent.local/schemas/network.schema.json",
+  "title": "dna-network.yaml",
+  "description": "SSOT schema for dna-network.yaml. dna-network.example.yaml is the template; every device port and URL the example names must match k8s/*.yaml and just/net/mod.just (checked by network-ssot.test.ts).",
+  "type": "object",
+  "required": ["devices"],
+  "properties": {
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 4850 },
+        "node": { "type": "integer", "minimum": 1 },
+        "code_dir": { "type": "string", "minLength": 1 },
+        "env_keys": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "cron": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "devices": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[a-z][a-z0-9-]{0,30}$": {
+          "type": "object",
+          "required": ["kind", "url"],
+          "properties": {
+            "name": { "type": "string" },
+            "kind": { "enum": ["local", "ssh", "exe-dev"] },
+            "url": { "type": "string", "pattern": "^https?://" },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "node": { "type": "integer", "minimum": 1 },
+            "code_dir": { "type": "string", "minLength": 1 },
+            "env_keys": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "cron": { "type": "string", "minLength": 1 },
+            "ssh": { "type": "string", "minLength": 1 },
+            "service": { "enum": ["launchd", "systemd"] },
+            "vm": { "type": "string", "minLength": 1 },
+            "hub_port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "ui": { "type": "string", "pattern": "^https?://" },
+            "ui_port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "tunnel": {
+              "type": "object",
+              "required": ["local", "remote"],
+              "properties": {
+                "local": { "type": "integer", "minimum": 1, "maximum": 65535 },
+                "remote": { "type": "integer", "minimum": 1, "maximum": 65535 }
+              },
+              "additionalProperties": false
+            },
+            "create": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

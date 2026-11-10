@@ -211,6 +211,16 @@ const uiNote = (x: DeviceStatus) =>
         ? " (private: exe.dev login)"
         : "";
 
+/** One inventory row: the mesh map table (device, kind, API URL, laptop hub port, UI URL). */
+export const inventoryLine = (x: { device: string; kind: string; url: string; hub: number; ui: string }) =>
+  [
+    pad(x.device, 8),
+    pad(x.kind, 8),
+    `api ${pad(x.url, 30)}`,
+    `hub ${pad(x.hub, 5)}`,
+    `ui ${x.ui}`,
+  ].join("  ");
+
 /** One device: state, the API link, and the browser UI link (with how to start it when no hub serves it). */
 export const deviceLine = (x: DeviceStatus) =>
   [

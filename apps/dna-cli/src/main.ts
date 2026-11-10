@@ -613,7 +613,7 @@ const COMMANDS: Record<string, Command> = {
     },
   },
   net: {
-    usage: "net <status|probe|up|down|restart|cron|logs> [device] [args]",
+    usage: "net <status|probe|up|down|restart|cron|logs|inventory> [device] [args]",
     summary: "Operate devices from dna-network.yaml",
     async run() {
       const [verb = "status", ...rest] = args;
@@ -630,7 +630,17 @@ const COMMANDS: Record<string, Command> = {
                   .map((x) =>
                     "step" in x
                       ? `${x.ok ? "pass" : "FAIL"}  ${x.step}: ${x.detail}`
-                      : "name" in x
+                      : verb === "inventory" && "kind" in x
+                        ? print.inventoryLine(
+                            x as unknown as {
+                              device: string;
+                              kind: string;
+                              url: string;
+                              hub: number;
+                              ui: string;
+                            },
+                          )
+                        : "name" in x
                         ? `${x.ok ? "pass" : "FAIL"}  ${x.name} (${x.detail})`
                         : print.deviceLine(x as unknown as print.DeviceStatus),
                   )

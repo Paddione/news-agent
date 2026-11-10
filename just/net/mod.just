@@ -51,6 +51,10 @@ tunnel DEVICE:
 browser DEVICE:
     {{ net }} browser "$1"
 
+# Map table: every device, its kind, API URL, laptop hub port and UI URL
+inventory:
+    {{ net }} inventory
+
 # Delete an exe-dev VM named in the YAML
 destroy DEVICE:
     {{ net }} destroy "$1"

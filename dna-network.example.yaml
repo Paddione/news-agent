@@ -1,4 +1,6 @@
 # dna-network.example.yaml: copy to dna-network.yaml (gitignored) and edit.
+# SSOT template for the mesh topology: validated by network.schema.json
+# (same directory) and cross-checked against k8s/*.yaml by network-ssot.test.ts.
 #
 # Every device runs apps/dna-server-api plus a crontab line for apps/dna-server-cron.
 # `just net <verb> <id>` looks the id up here; no recipe names a machine.

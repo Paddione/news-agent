@@ -1,6 +1,6 @@
 // dna net <verb> [device]: one set of verbs for every device kind, driven by dna-network.yaml.
 import { spawnSync } from "node:child_process";
-import { device, hubPort, loadNetwork, type NetDevice } from "@dna/sdk/node";
+import { device, hubPort, loadNetwork, type NetDevice, type Network } from "@dna/sdk/node";
 import { local, type Step } from "./local.ts";
 import { remote } from "./ops.ts";
 import { remoteDriver, tunnel } from "./remote.ts";
@@ -18,6 +18,7 @@ export const NET_VERBS = [
   "browser",
   "destroy",
   "step",
+  "inventory",
 ] as const;
 
 type Tokens = { client?: string; cron?: string };
@@ -100,8 +101,28 @@ async function deviceStatusOf(d: NetDevice, tokens: Tokens) {
   return { ...status, ui };
 }
 
+export interface InventoryRow {
+  device: string;
+  kind: string;
+  url: string;
+  hub: number;
+  ui: string;
+}
+
+/** The map table: every device, its kind, API URL, laptop hub port and UI URL. Pure: no probes, no ssh. */
+export function inventory(network: Network = loadNetwork()): InventoryRow[] {
+  return Object.values(network.devices).map((d) => ({
+    device: d.id,
+    kind: d.kind,
+    url: d.url,
+    hub: hubPort(d),
+    ui: d.ui?.url ?? `http://localhost:${hubPort(d)}`,
+  }));
+}
+
 export async function net(verb: string, args: string[], tokens: Tokens): Promise<unknown> {
   const network = loadNetwork();
+  if (verb === "inventory" && !args[0]) return inventory(network);
   if (verb === "status" && !args[0]) {
     const out = [];
     for (const d of Object.values(network.devices)) {
