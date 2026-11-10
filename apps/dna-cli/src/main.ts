@@ -641,8 +641,8 @@ const COMMANDS: Record<string, Command> = {
                             },
                           )
                         : "name" in x
-                        ? `${x.ok ? "pass" : "FAIL"}  ${x.name} (${x.detail})`
-                        : print.deviceLine(x as unknown as print.DeviceStatus),
+                          ? `${x.ok ? "pass" : "FAIL"}  ${x.name} (${x.detail})`
+                          : print.deviceLine(x as unknown as print.DeviceStatus),
                   )
                   .join("\n")
               : JSON.stringify(data, null, 2);

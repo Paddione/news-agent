@@ -62,7 +62,10 @@ test("models.yaml mirrors CATALOG and DEFAULT_MODEL", () => {
   const ssot = loadYaml();
   assert.equal(ssot.default, DEFAULT_MODEL);
   assert.equal(ssot.faux, FAUX_MODEL);
-  assert.deepEqual(ssot.catalog, CATALOG.map((c) => c.id));
+  assert.deepEqual(
+    ssot.catalog,
+    CATALOG.map((c) => c.id),
+  );
 });
 
 test("every .env.example model choice is in the catalog or a local/hosted slot", () => {
@@ -73,10 +76,7 @@ test("every .env.example model choice is in the catalog or a local/hosted slot",
   for (const { key, value } of envModelChoices()) {
     if (ssot.slots.openrouter[key] !== "catalog") continue;
     assert.ok(value, `${key} is empty in .env.example`);
-    assert.ok(
-      ssot.catalog.includes(value),
-      `${key}=${value} is not in the models.yaml catalog`,
-    );
+    assert.ok(ssot.catalog.includes(value), `${key}=${value} is not in the models.yaml catalog`);
   }
 });
 

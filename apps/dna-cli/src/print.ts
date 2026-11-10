@@ -212,7 +212,13 @@ const uiNote = (x: DeviceStatus) =>
         : "";
 
 /** One inventory row: the mesh map table (device, kind, API URL, laptop hub port, UI URL). */
-export const inventoryLine = (x: { device: string; kind: string; url: string; hub: number; ui: string }) =>
+export const inventoryLine = (x: {
+  device: string;
+  kind: string;
+  url: string;
+  hub: number;
+  ui: string;
+}) =>
   [
     pad(x.device, 8),
     pad(x.kind, 8),

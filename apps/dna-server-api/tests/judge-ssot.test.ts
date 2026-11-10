@@ -10,11 +10,7 @@ import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { loadCommand } from "@dna/jev";
 import { loadConfig } from "../src/config.ts";
-import {
-  judgeManifestPath,
-  loadJudgeManifest,
-  loadJudgeSsot,
-} from "../src/news/judge-ssot.ts";
+import { judgeManifestPath, loadJudgeManifest, loadJudgeSsot } from "../src/news/judge-ssot.ts";
 
 const API_DIR = resolve(import.meta.dirname, "..");
 const ROOT = resolve(API_DIR, "../..");
@@ -65,7 +61,10 @@ test("judge.yaml policy matches the injection command", () => {
 test("Env beats judge.yaml when resolving the manifest path", () => {
   const ssot = loadJudgeSsot();
   assert.equal(judgeManifestPath({}, ssot), ssot.manifestPath);
-  assert.equal(judgeManifestPath({ JEV_MANIFEST: "/tmp/custom/manifest.json" }, ssot), "/tmp/custom/manifest.json");
+  assert.equal(
+    judgeManifestPath({ JEV_MANIFEST: "/tmp/custom/manifest.json" }, ssot),
+    "/tmp/custom/manifest.json",
+  );
 });
 
 function fixtureManifest(dir: string, name = "news-judge") {

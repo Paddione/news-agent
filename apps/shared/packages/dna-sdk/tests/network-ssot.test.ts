@@ -29,17 +29,23 @@ function k8sValues(file: string, key: string): unknown[] {
 }
 
 const envDefault = (key: string): string => {
-  const m = readFileSync(join(ROOT, ".env.example"), "utf8").match(new RegExp(`^${key}=(\\S+)`, "m"));
+  const m = readFileSync(join(ROOT, ".env.example"), "utf8").match(
+    new RegExp(`^${key}=(\\S+)`, "m"),
+  );
   assert.ok(m, `${key} has no default in .env.example`);
   return m[1];
 };
 
 /** The gate: every port/URL/schedule the example names must match the manifests. */
-export function assertTopologyMatches(network: Network, k8s: (file: string, key: string) => unknown[]) {
+export function assertTopologyMatches(
+  network: Network,
+  k8s: (file: string, key: string) => unknown[],
+) {
   const local = network.devices.local;
   assert.ok(local, "the example names no local device");
   const apiPorts = k8s("dna-api.yaml", "containerPort").concat(k8s("dna-api.yaml", "targetPort"));
-  for (const p of apiPorts) assert.equal(p, network.devices.local.port, `port drift: k8s dna-api ${p}`);
+  for (const p of apiPorts)
+    assert.equal(p, network.devices.local.port, `port drift: k8s dna-api ${p}`);
   const hubPorts = k8s("dna-hub.yaml", "containerPort").concat(k8s("dna-hub.yaml", "targetPort"));
   for (const p of hubPorts)
     assert.equal(p, hubPort(network.devices.local), `port drift: k8s dna-hub ${p}`);
