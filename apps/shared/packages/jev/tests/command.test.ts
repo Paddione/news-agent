@@ -92,6 +92,16 @@ test("each repeats questions per claim with suffixed ids", () => {
   assert.match(String((rendered.questions.supported_1 as any).instructions), /It ships a GUI/);
 });
 
+test("injection instructions cover role-directed and framed commands", () => {
+  const rendered = renderCommand(loadCommand("injection", DIR), SAMPLE);
+  const instructions = String((rendered.questions.injection as any).instructions);
+  assert.match(instructions, /evaluator/);
+  assert.match(instructions, /crawler/);
+  assert.match(instructions, /triage/);
+  assert.match(instructions, /stays a command inside/);
+  assert.match(instructions, /rubrics?/);
+});
+
 test("runCommand renders and decides through the seam", async () => {
   const client = new JevClient({ provider: "mock" });
   const { result } = await runCommand(loadCommand("hfs", DIR), SAMPLE, (s, q, o) =>
