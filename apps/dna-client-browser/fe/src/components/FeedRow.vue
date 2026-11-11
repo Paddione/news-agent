@@ -42,9 +42,7 @@ const keyword = computed(() => clean(props.card.topic ?? props.card.sourceName ?
 <template>
   <div class="feed-row" :class="{ highlight: highlighted === card.id }" :data-row="card.id">
     <div class="rail" aria-hidden="true">
-      <time class="rail-time" :class="{ undated: !when }"
-        >{{ time }}<small>{{ day }}</small></time
-      >
+      <time class="rail-time" :class="{ undated: !when }">{{ time }}<small>{{ day }}</small></time>
       <span class="rail-node" :class="primary ?? 'none'">
         <component :is="primary ? ICONS[primary] : Newspaper" :size="15" />
       </span>

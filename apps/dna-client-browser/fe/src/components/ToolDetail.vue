@@ -68,21 +68,17 @@ const at = (t?: number) =>
     <template v-if="detail.jevCalls.length">
       <h4><BadgeCheck :size="14" />jev calls</h4>
       <div v-for="j in detail.jevCalls" :key="j.id" class="sub-row">
-        <span class="mono">{{ j.command }}</span
-        ><span>{{ ms(j.elapsedMs) }}</span
-        ><span>{{ usd(j.costUsd) }}</span
-        ><span>{{ j.attempts ?? 1 }} attempt</span> <span class="grow" /><CopyJson
-          :value="j"
-          label="jev call"
-        />
+        <span class="mono">{{ j.command }}</span><span>{{ ms(j.elapsedMs) }}</span
+        ><span>{{ usd(j.costUsd) }}</span><span>{{ j.attempts ?? 1 }} attempt</span> <span
+          class="grow"
+        /><CopyJson :value="j" label="jev call" />
         <JsonView :value="j.answers" />
       </div>
     </template>
     <template v-if="detail.firecrawlCalls.length">
       <h4><Search :size="14" />Firecrawl calls</h4>
       <div v-for="f in detail.firecrawlCalls" :key="f.id" class="sub-row">
-        <span class="mono">{{ f.endpoint }}</span
-        ><span>{{ f.status }}</span
+        <span class="mono">{{ f.endpoint }}</span><span>{{ f.status }}</span
         ><span>{{ f.creditsUsed ?? 0 }} credits</span><span>{{ ms(f.elapsedMs) }}</span
         ><span class="muted">{{ clean(f.query ?? f.url ?? "") }}</span>
       </div>

@@ -88,8 +88,7 @@ const marks = computed(() => {
           @click="toggle(t.id)"
         >
           <ChevronDown v-if="open.has(t.id)" :size="13" /><ChevronRight v-else :size="13" />
-          <span class="mono">{{ t.toolName }}</span
-          ><span>{{ t.isError ? "error" : t.status }}</span
+          <span class="mono">{{ t.toolName }}</span><span>{{ t.isError ? "error" : t.status }}</span
           ><span>{{ ms(t.durationMs) }}</span>
           <span v-if="t.children?.length">{{ t.children.length }} subagents</span>
         </button>

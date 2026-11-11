@@ -95,8 +95,7 @@ const span = computed(() => {
       :class="{ bad: t.isError }"
       @click="go(`/executions/tool/${t.id}`)"
     >
-      <span class="mono">{{ t.toolName }}</span
-      ><span>{{ t.isError ? "error" : t.status }}</span
+      <span class="mono">{{ t.toolName }}</span><span>{{ t.isError ? "error" : t.status }}</span
       ><span>{{ ms(t.durationMs) }}</span>
     </button>
   </div>

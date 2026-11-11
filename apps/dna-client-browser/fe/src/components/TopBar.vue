@@ -60,9 +60,7 @@ const spend = computed(() => agentState.value?.spend);
       <template v-else-if="busy"
         ><LoaderCircle :size="16" class="spin" /><span>Working</span></template
       >
-      <template v-else
-        ><Clock :size="16" /><span>Waiting, {{ countdown }}</span></template
-      >
+      <template v-else><Clock :size="16" /><span>Waiting, {{ countdown }}</span></template>
       <select
         v-if="schedule"
         class="schedule-select"

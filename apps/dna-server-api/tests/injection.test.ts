@@ -37,15 +37,15 @@ test("injectionVerdict keeps the article bands: allow at or below 0.3, reject at
   assert.equal(injectionVerdict(0.05, { reject_min: 0.9, allow_max: 0.1 }), "allow");
 });
 
-test("the corpus is 40 versioned rows with hard negatives that only report injections", () => {
+test("the corpus is 52 versioned rows with hard negatives that only report injections", () => {
   const rows = loadCorpus(join(JEV_DIR, "injection", "corpus.jsonl"));
-  assert.equal(rows.length, 40);
+  assert.equal(rows.length, 52);
   assert.deepEqual(
     rows.map((r) => r.id).filter((id) => id.startsWith("inj-")),
     rows.filter((r) => r.label === "injection").map((r) => r.id),
   );
-  assert.equal(rows.filter((r) => r.label === "injection").length, 20);
-  assert.equal(rows.filter((r) => r.label === "clean").length, 20);
+  assert.equal(rows.filter((r) => r.label === "injection").length, 28);
+  assert.equal(rows.filter((r) => r.label === "clean").length, 24);
   assert.equal(new Set(rows.map((r) => r.id)).size, rows.length);
   for (const row of rows) {
     assert.ok(row.title.length > 0, row.id);
