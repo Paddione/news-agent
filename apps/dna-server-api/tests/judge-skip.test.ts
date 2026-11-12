@@ -50,3 +50,40 @@ test("an unavailable judge skips the sweep with its reason and does not retry", 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a busy 27B skips the sweep as gpu_busy so the next tick retries", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "dna-skip-busy-"));
+  process.env.DNA_LOG_DIR = join(dir, "logs");
+  const config = loadConfig([], {
+    ...process.env,
+    DNA_PROVIDER: "faux",
+    DNA_SEARCH_MODE: "fixture",
+    DNA_FIXTURE_SET: "news",
+    DNA_DATA_DIR: dir,
+  });
+  const app = await openApp(config, {
+    decide: async () => {
+      throw new JudgeUnavailableError("gpu_busy", "qwen38-gsq-iq3xxs.service is busy");
+    },
+  });
+  try {
+    const started = await startNewsSweep(app, app.main, app.ctx, {
+      trigger: "test",
+      requestId: "skip:busy-1",
+    });
+    const id = started.sweep!.id;
+    await until(
+      () =>
+        app.store.sweeps.get(id)!.status !== "queued" &&
+        app.store.sweeps.get(id)!.status !== "running",
+      30_000,
+      "sweep end",
+    );
+    const sweep = app.store.sweeps.get(id)!;
+    assert.equal(sweep.status, "skipped");
+    assert.equal(sweep.reason, "gpu_busy");
+  } finally {
+    await app.close().catch(() => {});
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

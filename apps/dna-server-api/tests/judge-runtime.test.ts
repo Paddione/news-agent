@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { test, mock } from "node:test";
 import {
+  judgeUnavailableForExit,
   JudgeRuntime,
   JudgeUnavailableError,
   withRuntime,
@@ -117,4 +118,13 @@ test("a transport failure of the judge becomes JudgeUnavailableError and drops t
   assert.equal(rt.active, false);
   await assert.rejects(decide({}, {}), JudgeUnavailableError);
   assert.deepEqual(log, ["acquire", "acquire"]);
+});
+
+test("news-gpu-session exits map to skip reasons: 3 training, 5 busy 27B, else unavailable", () => {
+  assert.equal(judgeUnavailableForExit(3, "gpu 0 is training").reason, "gpu_training");
+  const busy = judgeUnavailableForExit(5, "qwen38-gsq-iq3xxs.service is busy");
+  assert.equal(busy.reason, "gpu_busy");
+  assert.match(busy.message, /gpu_busy/);
+  assert.equal(judgeUnavailableForExit(4, "judge not healthy").reason, "judge_unavailable");
+  assert.equal(judgeUnavailableForExit(1, "boom").reason, "judge_unavailable");
 });

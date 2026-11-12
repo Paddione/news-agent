@@ -7,14 +7,30 @@ import type { Decide } from "@dna/jev";
 
 const run = promisify(execFile);
 
+export type JudgeUnavailableReason = "gpu_training" | "gpu_busy" | "judge_unavailable";
+
 export class JudgeUnavailableError extends Error {
   constructor(
-    readonly reason: "gpu_training" | "judge_unavailable",
+    readonly reason: JudgeUnavailableReason,
     detail = "",
   ) {
     super(`local judge unavailable: ${reason}${detail ? ` (${detail})` : ""}`);
     this.name = "JudgeUnavailableError";
   }
+}
+
+/**
+ * Map a news-gpu-session exit to a skip reason. Exit 3: training holds the judge GPU. Exit 5: an inference
+ * unit the judge would preempt is answering a request (2026-11-12: an hourly sweep killed a Communicator run
+ * after five minutes of work) — the sweep ends as skipped and the next tick tries again.
+ */
+export function judgeUnavailableForExit(code: unknown, stderr: unknown): JudgeUnavailableError {
+  const detail = String(stderr ?? "")
+    .trim()
+    .slice(0, 200);
+  if (code === 3) return new JudgeUnavailableError("gpu_training", detail);
+  if (code === 5) return new JudgeUnavailableError("gpu_busy", detail);
+  return new JudgeUnavailableError("judge_unavailable", detail);
 }
 
 export interface Session {
@@ -28,14 +44,7 @@ export function shellSession(bin: string): Session {
     try {
       await run(bin, args, { timeout: 180_000 });
     } catch (error: any) {
-      if (error?.code === 3)
-        throw new JudgeUnavailableError("gpu_training", String(error.stderr ?? "").trim());
-      throw new JudgeUnavailableError(
-        "judge_unavailable",
-        String(error?.stderr ?? error)
-          .trim()
-          .slice(0, 200),
-      );
+      throw judgeUnavailableForExit(error?.code, error?.stderr ?? error);
     }
   };
   return {
