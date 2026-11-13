@@ -1,6 +1,6 @@
-import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
+import { readFileSync, appendFileSync, existsSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { LocalJev, renderCommand, renderPrompt, labelsFor, TEMPLATE_SHA } from "@dna/jev";
+import { LocalJev, renderCommand, renderPrompt, TEMPLATE_SHA } from "@dna/jev";
 
 const JEV_DIR = "/home/patrick/news-agent/apps/dna-server-api/prompt_engineering/jev";
 const command = JSON.parse(readFileSync(`${JEV_DIR}/injection/command.json`, "utf8"));

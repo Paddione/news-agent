@@ -53,7 +53,7 @@ const api = async (path, init = {}) => {
     headers: {
       authorization: `Bearer ${tokens.client}`,
       "content-type": "application/json",
-      ...(init.headers ?? {}),
+      ...init.headers,
     },
   });
   if (!res.ok) throw new Error(`${path} ${res.status}`);
