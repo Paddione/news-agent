@@ -19,6 +19,8 @@ oder nur hier gilt.
 - `.env` und `dna-network.yaml` sind lokal und nie zu stagen.
 - Verifikation: `npm run check` und `npm test` (siehe `repo.yaml`); Recipes unter
   `just/` (`just --list`).
+- Abschluss: im Worktree `python3 ~/scripts/agent-workspace.py land` (`land: ff`: Rebase,
+  `check` + `verify`, Fast-Forward auf `main`, Push nach `origin`, `finish`).
 - Skills: `.agents/skills/` sind unversionierte Links auf
   `~/agentic-resources/{core,lifecycle}`, angelegt per
   `python3 ~/scripts/agent-resources.py link-consumers`.
