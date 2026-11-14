@@ -95,7 +95,7 @@ if (args.includes("--dev")) {
     if (built.status !== 0) process.exit(built.status ?? 1);
   }
   app.use(express.static(resolve(appDir, "fe/dist"), { index: false, maxAge: "1h" }));
-  app.get("/{*path}", (_req, res) => res.sendFile(distIndex));
+  app.get("/{*path}", (_req, res) => res.sendFile(distIndex, { dotfiles: "allow" }));
 }
 
 spawnSync(resolve(appDir, "../../just/free-port.sh"), [String(port)], { stdio: "inherit" });
