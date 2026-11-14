@@ -1,0 +1,23 @@
+schema_version: 1
+
+repo:
+  main_branch: main
+  scopes: free
+  tickets: none
+  generated_artifacts: false
+  task_runner: none
+
+# Verifikation im Worktree-Root (Typen/Lint der Workspaces, Unit-Suites).
+verify:
+  - npm run check
+  - npm test
+
+# Abschluss: lokaler Fast-Forward auf main + Push nach origin (Paddione/news-agent).
+land: ff
+
+# Geteilte Verzeichnisse aus dem Hauptcheckout (Symlink in neue Worktrees).
+deps:
+  - path: node_modules
+    kind: symlink
+  - path: apps/shared/packages/durable-agent/node_modules
+    kind: symlink

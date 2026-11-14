@@ -14,3 +14,8 @@ test-results/
 !.agents/plans/*/phase-events.log
 # Unsloth compile cache (regenerierbar, 2026-11-04)
 unsloth_compiled_cache/
+
+# Skill-Links auf ~/agentic-resources (agent-resources.py link-consumers), unversioniert
+.agents/skills/
+# deps-Symlinks aus repo.yaml (Worktrees) sind Dateien, kein Verzeichnis
+node_modules
