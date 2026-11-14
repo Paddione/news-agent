@@ -17,3 +17,5 @@ entflechten, duplizierte Routen-/Tool-Paare zusammenführen.
 
 ## Abhängigkeiten
 - Graph-Receipt news-agent (4.595/16.523, sauberste). Re-Index via `od5-graph-refresh` (Home).
+
+health_goals: none (Abgeschlossenes DB-/Zyklus-Einmalziel ohne separaten Dauer-Probe; Vertragsinvariante über G-GOALS01 überwacht)
