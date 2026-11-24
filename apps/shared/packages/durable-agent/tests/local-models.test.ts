@@ -5,7 +5,7 @@ import { createModelCatalog } from "../src/index.ts";
 
 const local = {
   baseUrl: "http://127.0.0.1:1919/v1",
-  model: "qwen3.8-27b-gsq-rco-iq2s",
+  model: "inkling-2-mini-sq-10",
   contextWindow: 139264,
 };
 

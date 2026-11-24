@@ -19,7 +19,7 @@ const corpusPath =
 const outPath =
   values.output ?? "/home/patrick/unsloth-boxes/news-judge-train/corpus/injection/v3-labeled.jsonl";
 const baseUrl = values["base-url"] ?? "http://127.0.0.1:8010";
-const model = values.model ?? "qwen3.8-27b-gsq-rco-iq2s";
+const model = values.model ?? "inkling-2-mini-sq-10";
 
 const teacher = new LocalJev({
   baseUrl,
