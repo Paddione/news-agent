@@ -58,9 +58,9 @@ spec:
             - name: DNA_LOCAL_API_KEY
               value: local
             - name: DNA_MODEL
-              value: inkling-2-mini-sq-15
+              value: inkling-2-mini-sq-10
             - name: DNA_RESEARCH_MODEL
-              value: inkling-2-mini-sq-15
+              value: inkling-2-mini-sq-10
             # Fallback: OpenCode Go (flat subscription); muse-spark-1.3-contributor only speaks the Responses API there.
             - name: DNA_FALLBACK_BASE_URL
               value: https://opencode.ai/zen/go/v1
